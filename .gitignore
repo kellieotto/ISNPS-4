@@ -1,0 +1,26 @@
+## latex/bibtex auxiliary files:
+*.aux
+*.log
+*.out
+*.toc
+*.dvi
+*.bbl
+*.bcf
+*.blg
+*-blx.aux
+*-blx.bib
+*.brf
+*.run.xml
+*.synctex
+*.synctex.gz
+*.synctex.gz(busy)
+*.pdfsync
+*-concordance.tex
+*.nav
+*.snm
+*.vrb
+
+## other folders
+travel grant application/
+slides/fig/irr/*.pptx
+*.xcf
