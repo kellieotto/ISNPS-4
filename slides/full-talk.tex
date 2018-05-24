@@ -7,6 +7,10 @@
 \usepackage[export]{adjustbox}% http://ctan.org/pkg/adjustbox
 \usepackage{multicol}
 \usepackage{tikz}
+\usetikzlibrary{calc}
+\usepackage{array}
+\newcolumntype{L}{>{\centering\arraybackslash}m{2.5cm}}
+
 
 \nobibliography*
 
@@ -183,13 +187,32 @@ showstringspaces=false            %
 \newcommand{\argmax}{\arg\!\max}
 \newcommand{\argmin}{\arg\!\min}
 
+% Making a DAG
+\usepackage{tkz-graph}  
+\usetikzlibrary{calc}
+\usetikzlibrary{shapes.geometric}
+\usetikzlibrary{positioning}
+\tikzstyle{VertexStyle} = [shape            = rectangle,
+                               minimum width    = 6ex,%
+                               draw]
+ \tikzstyle{EdgeStyle}   = [->,>=stealth']      
+
+% Define block styles
+\tikzstyle{f} = [rectangle, draw, fill=blue!20, 
+    text width=3em, text badly centered, node distance=1.75cm]
+\tikzstyle{message} = [rectangle, draw, fill=green!20, 
+    text width=3em, text centered]
+\tikzstyle{io} = [draw, circle,fill=red!20, node distance=2cm,
+    minimum height=2em]
+\tikzstyle{line} = [draw, -latex']
+
 
 \mode<presentation>
 
 \title[permute]{From Paper to Program: Challenges of Implementing Permutation Tests}
 \author{\Large Kellie Ottoboni}
 \institute[]{Department of Statistics, UC Berkeley\\Berkeley Institute for Data Science}
-\date{June 11, 2018\\\small ISNPS, Salerno}
+\date{June 12, 2018\\\small ISNPS, Salerno}
 
 \begin{document}
 
@@ -229,15 +252,33 @@ showstringspaces=false            %
 
 
 %\AtBeginSection[]
-{
-   \begin{frame}
-       \frametitle{Outline}
-       \tableofcontents%[currentsection]
-   \end{frame}
-}
+%{
+%   \begin{frame}
+%       \frametitle{Outline}
+%       \tableofcontents%[currentsection]
+%   \end{frame}
+%}
 
 
 \section[Introduction]{Introduction}
+
+
+
+\usebackgroundtemplate{%             declare it
+\tikz[overlay,remember picture] \node[opacity=0.3, at=(current page.center)] {
+   \includegraphics[height=\paperheight,width=\paperwidth]{fig/DS8.jpg}};
+}
+
+
+\frame{
+\begin{center}
+\Huge
+Teaching Introductory Statistics
+\end{center}
+}
+
+\usebackgroundtemplate{ }    %% undeclare it
+
 
 
 \frame{
@@ -246,16 +287,42 @@ showstringspaces=false            %
 % When I meet new people and tell them I'm a statistician, the most common response I get is
 % wow, good for you, I took one statistics class and I hated it/was terrible at it
 \Large
+\begin{columns}[T]
+\begin{column}{.5\textwidth}
+\begin{center}
 
-Important concepts: sampling distribution, $p$-value, confidence intervals
+Important concepts
+\vspace{10pt}
 
-Get obscured by
+\begin{itemize}
+\item Sampling distributions 
+\item $p$-values
+\item Confidence intervals
+\end{itemize}
 
+\end{center}
+\end{column}
+
+\pause
+\begin{column}{.5\textwidth}
+\begin{center}
+
+Barriers to learning
+\vspace{10pt}
 \begin{itemize}
 \item Z tests, t tests
 \item Assumptions
-\item Endless formulas
+\item Formulas
 \end{itemize}
+
+\end{center}
+\end{column}
+
+\end{columns}
+
+
+
+
 
 %Students leave intro stats thinking that statistics is pedantic and all about memorizing formulas.
 %They think that $t$ tests are the only way to analyze data!
@@ -263,32 +330,45 @@ Get obscured by
 }
 
 
-
 \frame{
-\frametitle{Introductory Statistics}
-\Large
-What if we could teach the concepts without the particular details?
+\frametitle{What if we could teach the concepts without the particular details?}
 
+\begin{columns}
+
+\Large
+
+\begin{column}{.5\textwidth}
 Tools:
 
 \begin{enumerate}
 \item Resampling methods
 \item Computers
 \end{enumerate}
+
+\end{column}
+\begin{column}{.5\textwidth}
+\begin{center}
+\includegraphics[width=0.9\textwidth]{fig/DS8.jpg} \\
+Data Science 8 \\ UC Berkeley
+\end{center}
+\end{column}
+\end{columns}
 }
 
 
 \frame{
-\frametitle{Introductory Statistics}
+\frametitle{Permutation tests clarify concepts.}
 
-Permutation tests clarify concepts
 
 \begin{itemize}
 \item General: it's a procedure, not a formula
 \item Discrete: counting instead of integration
 \item Design-based: assumptions come from the data collection
 \end{itemize}
-\cite{hesterberg2015teachers}
+
+
+\vfill
+\small \textit{Hesterberg (2015)}
 
 }
 
@@ -296,13 +376,12 @@ Permutation tests clarify concepts
 
 
 \frame{
-\frametitle{Python}
+\frametitle{Python is gaining popularity for data analysis.}
 \Large
-Python is gaining popularity for doing data analysis.
 
 \begin{itemize}
-\item General purpose language with ``batteries included''
-\item Popular for a variety of scientific applications
+\item General purpose language, ``batteries included''
+\item Libraries for a variety of scientific applications
 \end{itemize}
 
 \begin{figure}[htbp]
@@ -314,91 +393,256 @@ Python is gaining popularity for doing data analysis.
 
 
 
-\frame{
-\frametitle{Python for teaching Statistics}
-\begin{center}
-\includegraphics[width=0.9\textwidth]{fig/DS8.jpg} \\
-Data Science 8, Spring 2016 at UC Berkeley
-\end{center}
+%\frame{
+%\frametitle{Python for teaching Statistics}
+%\begin{center}
+%\includegraphics[width=0.9\textwidth]{fig/DS8.jpg} \\
+%Data Science 8 at UC Berkeley
+%\end{center}
+%}
+
+
+
+\section[The book]{The book}
+
+\usebackgroundtemplate{%             declare it
+\tikz[overlay,remember picture] \node[opacity=0.3, at=(current page.center)] {
+   \includegraphics[height=\paperheight,width=1.2\paperwidth]{fig/working.jpg}};
 }
 
 
+\frame{
+\begin{center}
+\Huge
+The book
+\end{center}
+}
+
+\usebackgroundtemplate{ }    %% undeclare it
+
+
+
+\frame{
+\frametitle{A companion to Pesarin and Salmaso (2010)}
+
+\begin{columns}[T]
+\begin{column}{.4\textwidth}
+\begin{center}
+%\vspace{25pt}
+\includegraphics[width=0.9\textwidth]{fig/pesarinsalmaso.jpg}
+\end{center}
+\end{column}
+\begin{column}{.6\textwidth}
+
+\begin{itemize}
+\item Target audience: late undergraduate to early PhD or domain researchers with some statistics background
+\item Conceptual: how to determine an appropriate permutation test
+\item Carefully consider experimental design and assumptions
+\item Introduce concepts about causal inference
+\end{itemize}
+
+\end{column}
+\end{columns}
+
+
+}
+
+
+\frame{
+\frametitle{Three chapters}
+\Large
+\begin{enumerate}
+\setlength\itemsep{20pt}
+\item Components of a permutation test \\
+\normalsize \qquad The null invariance and the test statistic
+\item \Large From experiments to observational studies \\
+\normalsize \qquad Randomization, confounding, the ``implied experiment''
+\item \Large Computation for permutation tests \\
+\normalsize \qquad Sampling algorithms and pseudorandom numbers
+\end{enumerate}
+}
+
+
+
+\frame{
+\frametitle{The book will be open-source online...}
+\includegraphics[height=1.3\paperheight]{fig/gitbook.png}
+}
+
+\frame{
+\frametitle{with interactive Python code.}
+
+\begin{center}
+\begin{tikzpicture}
+  \node (img1) {\includegraphics[height=0.8\paperheight]{fig/jupyter_notebook.png}};
+  \node (img2) at (img1.east)[xshift=-1cm,yshift=-1.5cm] {\includegraphics[height=0.15\paperheight]{fig/binder.png}};
+\end{tikzpicture}
+\end{center}
+
+\includegraphics[height=\paperheight]{fig/jupyter_notebook.png}
+\includegraphics{fig/binder.png}
+}
 
 
 \section[Components of a Permutation Test]{Components of a Permutation Test}
-\section[Randomized Experiments and Observational Studies]{Randomized Experiments and Observational Studies}
 
-\frame
-{
-  \frametitle{Teaching Evaluations}
- \begin{center}
- \Large{ Student evaluations of teachers (SET) are used to} \\
-  \begin{itemize}
-  \item Quantify teaching effectiveness
-  \item Compare instructors across courses
-  \item Make hiring, firing, and promotion decisions  
-  \end{itemize}
-  \vfill
-Are SET a valid measure of teaching effectiveness? 
+\usebackgroundtemplate{%             declare it
+\tikz[overlay,remember picture] \node[opacity=0.3, at=(current page.center)] {
+   \includegraphics[height=\paperheight,width=1.2\paperwidth]{fig/clinical_trial.jpg}};
+}
+
+
+\frame{
+\begin{center}
+\Huge
+Choosing a test statistic \\
+\vspace{25pt}
+Example: clinical trials
 \end{center}
 }
+
+\usebackgroundtemplate{ }    %% undeclare it
+
+
+\frame{
+\frametitle{Clinical trial data}
+
+Randomized experiment to treat GERD
+\begin{itemize}
+\item 136 patients
+\item 8 sites
+\item 7 clinical endpoints, baseline $X$ and follow-up $Y$ measures 
+\end{itemize}
+
+\vspace{10pt}
+Did treatment A reduce symptoms compared to treatment B?
+
+\begin{figure}
+\centering
+\includegraphics[width=0.7\textwidth]{fig/count_by_site-1.pdf}
+\end{figure}
+
+
+\vfill
+\small \textit{Ottoboni, Lewis, and Salmaso (2018)}
+}
+
+\frame{
+\frametitle{The permutation test}
+Test the \textbf{sharp null hypothesis} that treatment has no effect:
+
+$$H_0: Y_{ij}(A) = Y_{ij}(B), \forall \text{individuals }i \text{ and sites } j$$
+
+\begin{figure}
+\centering
+\includegraphics[width=0.7\textwidth]{fig/hist_continuous_vars-1.pdf}
+\end{figure}
+
+\vspace{5pt}
+
+Naive, but correct, statistic: difference in mean outcomes
+$$\overline{Y(A)} - \overline{Y(B)}$$
+
+
+}
+
+\frame{
+\frametitle{Controlling for covariates}
+\begin{itemize}
+\itemsep 20pt
+\item Difference scores: $\left( \overline{Y(A)} - \overline{X(A)} \right) - \left( \overline{Y(B)} - \overline{X(B)} \right)$
+\item $t$ statistic from a linear model
+$$ Y_{ij} = \alpha_j + \beta X_{ij} + \gamma Z_{ij} + \varepsilon_{ij}$$
+\item Two ways to find a permutation distribution:
+\begin{itemize}
+\item Permute $Z$ 
+\item Permute estimates $\hat{\varepsilon}$ from reduced model (\textit{Freedman and Lane (1983)})
+\end{itemize}
+\end{itemize}
+
+}
+
+
+
+
+
+\section[Randomized Experiments and Observational Studies]{Randomized Experiments and Observational Studies}
+
+\usebackgroundtemplate{%             declare it
+\tikz[overlay,remember picture] \node[opacity=0.3, at=(current page.center)] {
+   \includegraphics[height=\paperheight,width=\paperwidth]{fig/set.jpg}};
+}
+
+
+\frame{
+\begin{center}
+\Huge
+Randomized experiments \\
+\vspace{25pt}
+Example: student evaluations of teaching
+\end{center}
+}
+
+\usebackgroundtemplate{ }    %% undeclare it
+
+
+
+%\frame
+%{
+%  \frametitle{Teaching Evaluations}
+% \begin{center}
+% \Large{ Student evaluations of teachers (SET) are used to} \\
+%  \begin{itemize}
+%  \item Quantify teaching effectiveness
+%  \item Compare instructors across courses
+%  \item Make hiring, firing, and promotion decisions  
+%  \end{itemize}
+%  \vfill
+%\end{center}
+%}
 
 
 \frame{
 \frametitle{Teaching evaluations}
 \large
 
-In \citet{boring2016teaching}, we reanalyzed data from \cite{macnell2014whats}.
-\vspace{10pt}
+Are SET a valid measure of teaching effectiveness? 
+\vspace{15pt}
+
+Data from MacNell et al. (2014)
+
 \begin{center}
 \begin{itemize}
 \itemsep 10pt
 \item Students were randomized to 4 online sections of a course.
 \item In two sections, the instructors swapped identities.
-%\item Female-identified instructor was rated lower on average in all categories
 \item Was the instructor who identified as female rated lower on average?
 \end{itemize}
 \end{center}
+
+\vfill
+\small \textit{Boring, Ottoboni, and Stark (2016)}
 }
 
 
 \frame{
 \frametitle{Neyman-Rubin model, generalized}
-Student $i$ is represented by a ticket with $4$ numbers, their response to each ``treatment.''
+%Student $i$ is represented by a ticket with $4$ numbers, their response to each ``treatment.''
 
 \begin{align*}
-r_{ijk} &= \text{ SET given by student }i\text{ to instructor }j \\
+\text{Rating } r_{ijk} &= \text{ SET given by student }i\text{ to instructor }j \\
 &\text{ when they appear to have gender }k
 \end{align*}
-$$i = 1, \dots, N; \qquad j = 1,2; \qquad k \in \{ \text{male, female} \}$$
+%$$i = 1, \dots, N; \qquad j = 1,2; \qquad k \in \{ \text{male, female} \}$$
 
 \vspace{10pt}
-Numbers are fixed; randomization reveals one of the numbers. \\
+%Numbers are fixed; randomization reveals one of the numbers. \\
+%\vspace{10pt}
+%Assume non-interference: each student's response depends only on that student's treatment. \\
 \vspace{10pt}
-Assume non-interference: each student's response depends only on that student's treatment. \\
-\vspace{10pt}
-If gender doesn't matter,
-$$r_{ij\text{male}} = r_{ij\text{female}}.$$
-}
+If gender doesn't matter, $r_{ij\text{male}} = r_{ij\text{female}}.$
 
-
-\frame{
-\frametitle{Randomization}
-
-Conceptually, there are two levels of randomization:
-
-\begin{enumerate}
-\item $N_m$ students are randomly assigned to the male instructor, and
-the remaining $N_f$ get the female instructor.
-\item Of the $N_j$ assigned to instructor $j$, 
-$N_{jm}$ are told that the instructor is male, for $j = 1, 2$.
-\end{enumerate}
-\vspace{10pt}
-
-All ${{N_m}\choose{N_{mm}} }\times{ {N_f}\choose{N_{fm}}}$ assignments of students to sections
-are equally likely. \\
-\vspace{10pt}
-
+\vspace{20pt}
 \begin{block}{Stratified two-sample test}
 \begin{itemize}
 \item For each instructor, permute perceived gender assignments
@@ -407,30 +651,6 @@ are equally likely. \\
 \end{block}
 }
 
-\begin{frame}[fragile]
-\frametitle{Code}
-\begin{center}
-\begin{python}
-# load packages
-import numpy as np
-from permute.data import macnell2014
-from permute.stratified import stratified_two_sample
-
-# initialize PRNG
-rs = np.random.RandomState(seed=1)
-
-# load the data
-ratings = macnell2014()
-
-# Ratings vs reported instructor gender (difference in means)
-(p, t) = stratified_two_sample(group=ratings.tagender,
-                               response=ratings.overall,
-                               condition=ratings.taidgender,
-                               alternative="two-sided",
-                               stat="mean", reps=10**5)
-\end{python}
-\end{center}
-\end{frame}
 
 
 \frame
@@ -461,103 +681,153 @@ Responsive & 0.22 & 0.48 & \textcolor{red}{0.013}
 
 
 
-\frame{
-\frametitle{Omnibus Test}
-\textbf{Nonparametric combination of tests (NPC):} combine individual p-values into a single omnibus test when there are many responses \\
-\vspace{10pt}
-
-Test whether to accept \textbf{all null} hypotheses or reject \textbf{at least one alternative} \\
-\vspace{10pt}
-
-\begin{block}{Fisher's combining function}
-Let $\{ P_j\}_{j=1}^J$ be p-values for $J$ hypotheses. Define
-$$X^2 = -2 \sum_{j=1}^J \ln(P_j)$$
-If $\{ P_j\}_{j=1}^J$ are independent and all nulls are true, then $X^2 \sim \chi_{2J}^2$ . \\
-\end{block}
-}
-
-
-\frame{
-\frametitle{Omnibus Test}
-Ratings by the same student for different categories are \textbf{dependent}.\\
-\vspace{10pt}
-
-$\implies$ Treat all ratings from a student as a vector and calibrate the distribution of $X^2$ using the this permutation distribution.
-\vspace{10pt}
-
-\begin{block}{NPC Permutation Procedure}
-\begin{enumerate}
-\item Calculate the vector of test statistics (use the \textbf{same permutation} of section memberships to compute all statistics), repeat a large number $B$ times
-\item Compute the p-value for each individual variable in each permutation relative to the other values in the distribution
-\item Apply the combining function to each vector of p-values.
-\end{enumerate}
-\end{block}
-}
-
-
-
-\begin{frame}[fragile]
-\frametitle{Omnibus Test}
-\begin{python}
-# Initialize placeholders
-ind = 0
-test_distr = np.zeros( (10**5, len(categories)) )
-pvalues = np.zeros( len(categories) )
-
-# Loop over rating categories
-for col in categories:
-    (p, t, distr) = stratified_two_sample(
-                        group=ratings.tagender,
-                        response=ratings[col],
-                        condition=ratings.taidgender,
-                        alternative="two-sided",
-                        stat="mean", seed = seed,
-                        reps = 10**5, keep_dist = True)
-    ind += 1
-    test_distr[:,ind] = distr; pvalues[ind] = p
- 
-# NPC 
-omnibus_pvalue = npc(pvalues, test_distr, combine="fisher", 
-                         alternatives="two-sided")
-\end{python}
-\end{frame}
-
-\frame{
-\frametitle{Conclusions}
-\large
-\textbf{Omnibus test:} $P = 0$ \\
-\vspace{20pt}
-
-Reject the null hypothesis that there is no difference in ratings for any category. \\
-\vspace{10pt}
-$\implies$ SET measure something other than teaching effectiveness.
-}
-
 
 
 
 \section[Software and Statistics]{Algorithms and Pseudorandom Numbers}
 
-\frame{
-\frametitle{Download \texttt{permute}!}
-\begin{figure}[htbp]
-\begin{center}
-\includegraphics[width=\textwidth]{fig/github/permute}
-\end{center}
-\end{figure}
-
-
-\url{https://github.com/statlab/permute}
+\usebackgroundtemplate{%             declare it
+\tikz[overlay,remember picture] \node[opacity=0.6, at=(current page.center)] {
+   \includegraphics[height=\paperheight,width=\paperwidth]{fig/prngs.jpg}};
 }
 
 
-\begin{frame}
-\frametitle{References}
-\tiny
-\bibliographystyle{plainnat}
-\bibliography{refs}
-\itemize
-\end{frame}
+\frame{
+\begin{center}
+\Huge
+Pseudorandom number generators
+\end{center}
+}
+
+\usebackgroundtemplate{ }    %% undeclare it
+
+
+
+
+
+\frame{
+\frametitle{What is a PRNG?}
+
+%A PRNG is a deterministic function with several components:
+\begin{itemize}
+\item A user-supplied \textbf{seed value} used to set the internal state
+\item A function that maps the \textbf{internal state to pseudorandom bits}
+\item A function that \textbf{updates the internal state}
+\end{itemize}
+
+\begin{center}
+\resizebox{10cm}{!}{    
+\begin{tikzpicture}[node distance = 3cm, auto, scale = 0.5]
+    % Place nodes
+    \node[io] (seed) {Seed};
+    \node [f, right of=seed, node distance = 3cm] (state) {Internal state};
+    \node [message, right of=state, node distance = 3cm] (output) {Random bits};
+    % Draw edges
+    \path [line] (seed) -- (state);
+    \path [line] (state) -- (output);
+    \path (state) edge [->, in = 130, out = 50, distance = 20mm] node[above] {Update} (state);
+    % Draw box 
+    \draw ($(state.north west)+(-2.5,2.5)$)  rectangle ($(state.south east)+(2.5,-1)$);
+\end{tikzpicture}
+}
+\end{center}
+
+}
+
+
+
+\frame{
+\frametitle{Pigeonhole principle in action}
+
+\begin{theorem}[Too few pigeons]
+If ${n \choose k}$ is greater than the size of a PRNG's state space, then the PRNG cannot possibly generate all samples of size $k$ from a population of $n$.
+\end{theorem}
+
+
+\begin{center}
+\begin{table}[htdp]
+\begin{tabular}{LLLL}
+PRNG & \# Internal states & \# Possibilities & Proportion of attainable possibilities \\
+\hline
+32-bit linear congruential generators & 4 billion & Samples of 10 out of 50 items $\approx 10$ billion & $0.4$ \\
+\hline
+Mersenne Twister & $\approx 2 \times 10^{6010}$ & Permutations of $2084$ items $\approx 3 \times 10^{6013}$ & $0.0001$
+\end{tabular}
+\end{table}%
+\end{center}
+
+}
+
+
+\frame{
+\frametitle{Cryptographically secure PRNGs}
+\textbf{Hash functions} take in a message $x$ of arbitrary length and return a value $h(x)$ of fixed size (e.g. 256 bits)
+
+
+\begin{center}
+\resizebox{10cm}{!}{    
+\begin{tikzpicture}[node distance = 1cm, auto, scale = 0.5]
+    % Place nodes
+    \node[io] (IV) {IV};
+    \node [f, right of=IV] (f1) {f};
+    \node [f, right of=f1] (f2) {f};
+    \node [f, right of=f2, node distance=3cm] (fn1) {f};
+    \node [f, right of=fn1] (fend) {f};
+    \node [f, right of=fend] (g) {g};
+    \node [io, right of=g] (hx) {$h(x)$};
+    \node [message, above of=f1] (m1) {$x_1$};
+    \node [message, above of=f2] (m2) {$x_2$};
+    \node [message, above of=fn1] (mn1) {$x_{n-1}$};
+    \node [message, above of=fend] (mend) {$x_n$};
+    \node [message, above right = of m1, above left = of mend, minimum width = 5cm] (message) {$x$};
+    % Draw edges
+    \path [line] (IV) -- (f1);
+    \path [line] (f1) -- (f2);
+    \path [line] (message) -- (m1);
+    \path [line] (message) -- (m2);
+    \path [line] (message) -- (mn1);
+    \path [line] (message) -- (mend);
+    \draw [-,dotted] (m2) -- (mn1);
+    \path [line] (m1) -- (f1);
+    \path [line] (m2) -- (f2);
+     \path [line] (mn1) -- (fn1);
+    \path [line] (mend) -- (fend);
+    \path [line] (fend) -- (g);
+    \path [line,dashed] (f2) -- (fn1);
+    \path [line] (fn1) -- (fend);
+    \path [line] (g) -- (hx);
+\end{tikzpicture}
+}
+\end{center}
+Cryptographic hash functions:
+\begin{itemize}
+\item computationally infeasible to invert
+\item difficult to find two inputs that map to the same output
+\item small input changes produce large, unpredictable changes to output
+\item resulting bits are uniformly distributed
+\end{itemize}
+}
+
+\frame{
+\frametitle{From paper to program}
+
+\begin{itemize}
+\itemsep 15pt
+\item Teach the concepts of hypothesis testing using permutation tests
+\item Open-source online book with interactive Python examples
+\item Packages on GitHub: \texttt{permute}, \texttt{cryptorandom}, \texttt{pscore\_match}
+\end{itemize}
+
+}
+
+
+%\begin{frame}
+%\frametitle{References}
+%\tiny
+%\bibliographystyle{plainnat}
+%\bibliography{refs}
+%\itemize
+%\end{frame}
 
 
 \end{document}
