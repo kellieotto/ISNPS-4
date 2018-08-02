@@ -41,7 +41,7 @@
 
 \begin{document}
 
-\title*{With Great Power Comes Great Responsibility: Multivariate Permutation Tests and their Numerical Implementation}
+\title*{Random Sampling: Practice Makes Imperfect}
 % Use \titlerunning{Short Title} for an abbreviated version of
 % your contribution title if the original one is too long
 \author{Philip B.~Stark and Kellie Ottoboni}
@@ -56,16 +56,10 @@
 %
 \maketitle
 
-\abstract*{
-TODO - fix
-Permutation tests can be calibrated by simulation using pseudo-random permutations of the data.
-To keep the advantages that nonparametric tests afford, the simulation needs to be adequately accurate 
-? which is not merely a question of the number of replications. 
-Surprisingly, default pseudo-random number generators (PRNGs) in common statistical packages are
-generally inadequate for modern permutation inference, 
-and sampling algorithms based on those PRNGs vary widely in efficiency and accuracy. 
-The default PRNGs in statistical packages should be replaced with cryptographically secure PRNGs (CS-PRNGs), 
-and in some cases, the algorithms for generating random integers and random samples should be replaced with better methods.
+\abstract{
+1) Pigeonhole principle shows that PRNGs cannot be adequate
+2) Some sampling algorithms are better than others: ones that use only $k$ PRNs to sample are better than those that use $n$ when $k \ll n$
+3) Common software has these issues.
 }
 
 %\abstract{Each chapter should be preceded by an abstract (10--15 lines long) that summarizes the content. The abstract will appear \textit{online} at \url{www.SpringerLink.com} and be available with unrestricted access. This allows unregistered users to read the abstract as a teaser for the complete chapter. As a general rule the abstracts will not appear in the printed version of your book unless it is the style of your particular book or that of the series to which your book belongs.\newline\indent
@@ -83,47 +77,67 @@ In theory, there's no difference between theory and practice, but in practice, t
 \section{Introduction}
 \label{sec:introduction}
 
-Permutation tests are a class of nonparametric hypothesis tests for which the null distribution of the
-test statistic is calculated based on applying a group action to the observed data.
-The data $X$ has distribution $F_X$ and takes values in $\mathcal{X}$.
-Let $\mathcal{G}$ be a group of transformations from $\mathcal{X}$ to $\mathcal{X}$.
-There is a probability measure $\mu$ on $\mathcal{G}$ that is left and right invariant: 
-If $G \subset \mathcal{G}$ is measurable, then $\forall g \in \mathcal{G}$, $gG$ and $Gg$ are measurable, 
-and $\mu(G) = \mu(gG) = \mu(Gg)$.
+%Permutation tests are a class of nonparametric hypothesis tests for which the null distribution of the
+%test statistic is calculated based on applying a group action to the observed data.
+%The data $X$ has distribution $F_X$ and takes values in $\mathcal{X}$.
+%Let $\mathcal{G}$ be a group of transformations from $\mathcal{X}$ to $\mathcal{X}$.
+%There is a probability measure $\mu$ on $\mathcal{G}$ that is left and right invariant: 
+%If $G \subset \mathcal{G}$ is measurable, then $\forall g \in \mathcal{G}$, $gG$ and $Gg$ are measurable, 
+%and $\mu(G) = \mu(gG) = \mu(Gg)$.
+%
+%Under the null hypothesis $H_0$, $X \sim gX$ for all $g \in \mathcal{G}$.
+%$T: \mathcal{X} \rightarrow \mathbb{R}$ is a test statistic on $\mathcal{X}$; 
+%large values of $T$ are considered evidence against $H_0$.
+%We observe data $X = x$.
+%The $P$-value of $H_0$, conditional on $X \in \mathcal{G}x$, is the measure of the
+%set of objects in the orbit of $\mathcal{G}$ that are at least as large as $T(x)$:
+%$$p = \mu \{g \in \mathcal{G}: T(gx) \ge T(x) \}.$$
+%
+%In practice, the orbit $\mathcal{G}$ is often too large to enumerate.
+%Instead, the $P$-value is estimated by Monte Carlo simulation.
+%To estimate $p$, first generate a random sample of group actions,
+%$\{ G_j \}$ independent and identically distributed with measure $\mu$.
+%The test statistic $1_{T(G_jx) \ge Tx}$ is unbiased:
+%it follows a Bernoulli distribution with mean $p$.
+%This simple procedure enables one to construct tests, including sequential tests,
+%and upper confidence bounds for $p$.
+%
+%However, this procedure crucially relies on the ability to generate independent and
+%identically distributed $\{ G_j \}$.
 
-Under the null hypothesis $H_0$, $X \sim gX$ for all $g \in \mathcal{G}$.
-$T: \mathcal{X} \rightarrow \mathbb{R}$ is a test statistic on $\mathcal{X}$; 
-large values of $T$ are considered evidence against $H_0$.
-We observe data $X = x$.
-The $P$-value of $H_0$, conditional on $X \in \mathcal{G}x$, is the measure of the
-set of objects in the orbit of $\mathcal{G}$ that are at least as large as $T(x)$:
-$$p = \mu \{g \in \mathcal{G}: T(gx) \ge T(x) \}.$$
 
-In practice, the orbit $\mathcal{G}$ is often too large to enumerate.
-Instead, the $P$-value is estimated by Monte Carlo simulation.
-To estimate $p$, first generate a random sample of group actions,
-$\{ G_j \}$ independent and identically distributed with measure $\mu$.
-The test statistic $1_{T(G_jx) \ge Tx}$ is unbiased:
-it follows a Bernoulli distribution with mean $p$.
-This simple procedure enables one to construct tests, including sequential tests,
-and upper confidence bounds for $p$.
 
-However, this procedure crucially relies on the ability to generate independent and
-identically distributed $\{ G_j \}$.
-In fact, standard software cannot do this in all cases.
-Whether it is possible depends on the size of the problem (orbit) and the internals of the software:
+Resampling statistics, including permutation tests and bootstrapping, crucially rely on software to draw equally likely random samples of data.
+\todo{fill out sampling background}
+
+
+In fact, standard software cannot always do this.
+Whether it is possible depends on the size of the problem and the internals of the software:
 the sampling algorithm and pseudo-random number generator.
-We show that even for datasets with hundreds of observations, simple pseudo-random number generators
+The pseudo-random number generator supplies ``randomness'' and is passed into the sampling algorithm,
+which uses these pseudo-random numbers to determine which items are included in the sample.
+
+We show mathematically that even for datasets with hundreds of observations, many pseudo-random number generators
 are incapable of drawing all simple random samples of a smaller size.
+We apply the pigeonhole principle to random sample ``pigeons'' and pseudo-random number generator ``pigeonholes''
+to estimate the fraction of random samples that cannot be attained.
+There exist statistics that are biased when estimated from these empirical sampling distributions.
+
+Moreover, the choice of sampling algorithm matters:
+some algorithms put greater demands on the PRNG than others.
+Algorithms that require more random numbers ``use up'' a PRNG more quickly than algorithms that depend on fewer.
+The algorithms themselves assume that their inputs are uniformly random;
+many software packages use a truncation method of obtaining pseudo-random integers that renders them nonuniform.
+Even if the PRNG were perfectly uniform, this problem would continue to affect the uniformity of random samples.
 
 The paper is organized as follows.
 Section~\ref{sec:prngs} defines pseudo-randomness and gives examples of good and bad pseudo-random number generators.
 Section~\ref{sec:count} gives several mathematical arguments that demonstrate the limited capability of pseudo-random number
 generators with finite state spaces.
-Section~\ref{sec:algorithms} talks about different sampling algorithms; some ``use up'' more pseudo-random numbers than others.
+Section~\ref{sec:algorithms} discusses different sampling algorithms; some ``use up'' more pseudo-random numbers than others.
 Section~\ref{sec:integers} presents how the most straightforward algorithm for converting pseudo-random numbers into pseudo-random integers on an arbitrary
-rangegoes wrong.
-Section~\ref{sec:discussion} concludes.
+range goes wrong.
+Section~\ref{sec:discussion} concludes with recommendations and best practices.
 
 
 
@@ -161,17 +175,17 @@ Linear congruential generators (LCGs) have the form $X_{n+1} = (a X_n + c) \mod 
 multiplier $a$, and an additive parameter $c$.
 LCGs are attractive because they are fast to compute and require little memory.
 The behavior of LCGs is well-understood from fundamental number theory.
-For instance, the following theorem describes which LCGs have full period $m$.
-
-\begin{theorem}[Hull-Dobell Full Period Theorem]
-\label{thm:hull_dobell_period}
-The period of an LCG is $m$ for all seeds $X_0$ if and only if
-\begin{itemize}
-\item $m$ and $c$ are relatively prime,
-\item $a-1$ is divisible by all prime factors of $m$, and
-\item $a-1$ is divisible by 4 if $m$ is divisible by 4.
-\end{itemize}
-\end{theorem}
+For instance, the Hull-Dobell theorem determines which LCGs have full period $m$ based on their parameters.
+%
+%\begin{theorem}[Hull-Dobell Full Period Theorem]
+%\label{thm:hull_dobell_period}
+%The period of an LCG is $m$ for all seeds $X_0$ if and only if
+%\begin{itemize}
+%\item $m$ and $c$ are relatively prime,
+%\item $a-1$ is divisible by all prime factors of $m$, and
+%\item $a-1$ is divisible by 4 if $m$ is divisible by 4.
+%\end{itemize}
+%\end{theorem}
 
 Programmers took advantage of early computer hardware and developed LCGs using moduli of the form $m = 2^b$, where
 $b$ was the integer word size of the computer, in order to facilitate computing multiplication and modulus operations.
@@ -183,22 +197,19 @@ Other types of PRNGs have been constructed using simple mathematical relations.
 The KISS generator combines 4 generators of three types: two multiply-with-carry
 generators, the 3-shift register SHR3 and the congruential generator CONG.
 KISS has a period length over $2^{210}$.
-\todo{Mention lagged fibonacci sequences, xorshift}
+There are other families of PRNGs based on simple mathematical operations, including lagged Fibonacci sequences and xorshift operations \todo{CITE}.
 These PRNGs are all predictable after observation of a small number of outputs.
 For example, one can backsolve for the LCG constants $a$, $c$, and $m$ after only 3 observations.
 
-
-Lagged Fibonacci, KISS, xorshift family, PCG, ... 
-
 The Wichmann-Hill PRNG is a sum of three LCGs, used to produce random values on $[0, 1)$.
-Given three seed values $s_1, s_2, s_3$, the next value $r$ is given by
-\begin{align*}
-s_1 &= 171 s_1\mod(30269) \\
-s_2 &= 172 s_2 \mod(30307) \\
-s_3 &= 170 s_3 \mod(30323) \\
-r &= (s_1/30269 + s_2/30307 + s_3/30323) \mod(1)
-\end{align*}
-
+%Given three seed values $s_1, s_2, s_3$, the next value $r$ is given by
+%\begin{align*}
+%s_1 &= 171 s_1\mod(30269) \\
+%s_2 &= 172 s_2 \mod(30307) \\
+%s_3 &= 170 s_3 \mod(30323) \\
+%r &= (s_1/30269 + s_2/30307 + s_3/30323) \mod(1)
+%\end{align*}
+%
 The Wichmann-Hill generator is generally not considered adequate for statistics, but was (nominally) the PRNG in Excel for several generations. 
 Excel did not allow the seed to be set, so analyses were not reproducible.
 Moreover, the generator in Excel had an implementation bug that persisted for several generations.
@@ -227,7 +238,7 @@ They are quick to compute but predictable due to their mathematical structure.
 Cryptographers have devoted a great deal of energy to inventing cryptographic primitives,
 functions for encrypting messages so that an adversary cannot efficiently find a pattern to use to undo the function application.
 Cryptographic primitives can be easily turned into PRNGs, as all of the properties that make such functions cryptographically secure
-are properties of pseudorandomness.
+are properties of pseudo-randomness.
 Cryptographic hash functions are one such primitive.
 A cryptographic hash function $H$ has the following properties:
 
@@ -290,7 +301,7 @@ $ \frac{2^{nH(k/n)}}{n+1} \le {n \choose k} \le 2^{nH(k/n)},$ where $H(q) \equiv
 for $\ell \ge 1$ and $m \ge 2$, $ { {\ell m } \choose { \ell }} \ge \frac{m^{m(\ell-1)+1}}{\sqrt{\ell} (m-1)^{(m-1)(\ell-1)}}. $
 \end{itemize}
 
-Table~\ref{tab:pigeonhole} attempts to put permutation pigeons into PRNG pigeonholes.
+Table~\ref{tab:pigeonhole} counts permutation pigeons and PRNG pigeonholes.
 For PRNGs with a small state space, even modest population sizes make it impossible to generate all possible randomizations.
 MT fails too: fewer than 1\% of permutations of 2084 items are actually attainable.
 
@@ -334,135 +345,129 @@ Fraction of attainable samples & $\frac{2^{32 \times 624}}{{3.9\times 10^8 \choo
 
 
 \subsection{L1 bounds}\label{sec:L1bounds}
-Suppose ${\mathbb P}_0$ and ${\mathbb P}_1$ are probability distributions on a common measurable space. 
 
+Simple probability bounds demonstrate the extent of bias introduced by using a PRNG with insufficiently large
+state space to approximate the resampling distribution of a statistic.
+Suppose ${\mathbb P}_0$ and ${\mathbb P}_1$ are probability distributions on a common measurable space. 
 If there is some set $S$ for which ${\mathbb P}_0 = \epsilon$ and ${\mathbb P}_1(S) = 0$, then $\|{\mathbb P}_0 - {\mathbb P}_1 \|_1 \ge 2 \epsilon$.
 
 Thus there is a function $f$ with $|f| \le 1$ such that 
 
 $${\mathbb E}_{{\mathbb P}_0}f -  {\mathbb E}_{{\mathbb P}_1}f \ge 2 \epsilon.$$
 
-- If PRNG has $n$ states and want to generate $N>n$ equally likely outcomes, at least $N-n$ outcomes will have probability zero instead of $1/N$.
-
-- $\| \mbox{true} - \mbox{desired} \|_1 \ge 2 \times \frac{N-n}{N}$
+In this context, ${\mathbb P}_0$ may be the true distribution of statistics across equally likely resamples of a population 
+and ${\mathbb P}_1$ is the distribution of statistics attainable using a PRNG to resample from the population.
+If the PRNG has $n$ states and we want to generate $N>n$ equally likely outcomes, at least $N-n$ outcomes will have probability zero instead of $1/N$.
+In this case, some statistics will have bias of at least $2 \times \frac{N-n}{N}$.
 
 \section{Sampling algorithms}
 \label{sec:algorithms}
 
 
-Given a good source of randomness, many ways to draw a simple random sample.
-
-One basic approach is like shuffling a deck of $n$ cards, then dealing the top $k$: 
+Given a good source of randomness, there are many ways to draw a simple random sample.
+One basic approach is like shuffling a deck of $n$ cards, then dealing the top $k$:
 permute the population at random, then take the first $k$ elements of the permutation to be the sample.
-There are a number of standard ways to generate a random permutation -- i.e., to shuffle the deck.
-If we had a way to generate independent, identically distributed (iid) $U[0,1]$ random numbers, we could sample $k$ out of $n$ as follows:
-
-\begin{algorithm}                      % enter the algorithm environment
-\caption{PIKK: Permute indices and keep $k$}          % give the algorithm a caption
-\label{PIKK}                           % and a label for \ref{} commands later in the document
-\begin{algorithmic}[1]               % enter the algorithmic environment
-    \Require $n \geq k \geq 0$
-    \Statex
-     \State{Assign IID uniform values on $[0,1]$ to the $n$ elements of the population}
-     \State{Sort the population according to these values (break ties randomly)}
-     \State{Take the top $k$ to be the sample}
-\end{algorithmic}
-\end{algorithm}
+We call this algorithm PIKK: Permute indices and keep $k$.
 
 This amounts to generating a random permutation of the population and throwing out all but the first $k$.
 If the numbers really are independent and identically distributed, every permutation is equally likely, and it follows that the first $k$ are an SRS.
 If permutations are not equiprobable, then samples generated using this algorithm may not be either.
 Furthermore, this algorithm is inefficient: it requires the generation of $n$ random numbers and then an $O(n\log n)$ sorting operation.
 
-There are more efficient ways to generate a random permutation than assigning a number to each element and sorting.
-One example is the``Fisher-Yates shuffle'' or ``Knuth shuffle'' (Knuth attributes it to Durstenfeld).
 
-\begin{algorithm}                      % enter the algorithm environment
-\caption{Fisher-Yates-Knuth-Durstenfeld shuffle (backwards version)}          % give the algorithm a caption
-\label{FYKD}                           % and a label for \ref{} commands later in the document
-\begin{algorithmic}[1]               % enter the algorithmic environment
-\For{$i = 1, \dots, n-1$}
-    \Let{$J$}{$\text{random integer uniformly distributed on }i, \dots, n$}
-    \Let{$a[J], a[i]$}{$a[i], a[J]$}
-\EndFor
-\end{algorithmic}
-\end{algorithm}
+%If we had a way to generate independent, identically distributed (iid) $U[0,1]$ random numbers, we could sample $k$ out of $n$ as follows:
+%
+%\begin{algorithm}                      % enter the algorithm environment
+%\caption{PIKK: Permute indices and keep $k$}          % give the algorithm a caption
+%\label{PIKK}                           % and a label for \ref{} commands later in the document
+%\begin{algorithmic}[1]               % enter the algorithmic environment
+%    \Require $n \geq k \geq 0$
+%    \Statex
+%     \State{Assign IID uniform values on $[0,1]$ to the $n$ elements of the population}
+%     \State{Sort the population according to these values (break ties randomly)}
+%     \State{Take the top $k$ to be the sample}
+%\end{algorithmic}
+%\end{algorithm}
 
+There are a number of standard ways to generate a random permutation -- i.e., to shuffle the deck.
+PIKK uses one of the least efficient ways, assigning a number to each element and sorting.
+A more efficient method is the``Fisher-Yates shuffle'' or ``Knuth shuffle'' (Knuth attributes it to Durstenfeld).
 This algorithm requires the ability to generate independent random integers on various ranges, but doesn't require sorting.
 There is also a version suitable for streaming, i.e. generating a random permutation of a list that has an (initially) unknown number of elements.
 
-\begin{algorithm}                      % enter the algorithm environment
-\caption{Fisher-Yates-Knuth-Durstenfeld shuffle (streaming version)}          % give the algorithm a caption
-\label{FYKD-streaming}                           % and a label for \ref{} commands later in the document
-\begin{algorithmic}[1]               % enter the algorithmic environment
-\Let{$i$}{0}
-\Let{$a$}{[]}
-\While{there are records left}
-    \Let{$i$}{$i+1$}
-    \Let{$J$}{random integer uniformly distributed on $\{1, \dots, i\}$}
-    \If{$J < i$}
-        \Let{$a[i]$}{$a[J]$}
-        \Let{$a[J]$}{next record}
-    \Else
-        \Let{$a[i]$}{next record} 
-    \EndIf
-\EndWhile \\
-\Return{$a$}
-\end{algorithmic}
-\end{algorithm}
+%
+%\begin{algorithm}                      % enter the algorithm environment
+%\caption{Fisher-Yates-Knuth-Durstenfeld shuffle (backwards version)}          % give the algorithm a caption
+%\label{FYKD}                           % and a label for \ref{} commands later in the document
+%\begin{algorithmic}[1]               % enter the algorithmic environment
+%\For{$i = 1, \dots, n-1$}
+%    \Let{$J$}{$\text{random integer uniformly distributed on }i, \dots, n$}
+%    \Let{$a[J], a[i]$}{$a[i], a[J]$}
+%\EndFor
+%\end{algorithmic}
+%\end{algorithm}
+
+%\begin{algorithm}                      % enter the algorithm environment
+%\caption{Fisher-Yates-Knuth-Durstenfeld shuffle (streaming version)}          % give the algorithm a caption
+%\label{FYKD-streaming}                           % and a label for \ref{} commands later in the document
+%\begin{algorithmic}[1]               % enter the algorithmic environment
+%\Let{$i$}{0}
+%\Let{$a$}{[]}
+%\While{there are records left}
+%    \Let{$i$}{$i+1$}
+%    \Let{$J$}{random integer uniformly distributed on $\{1, \dots, i\}$}
+%    \If{$J < i$}
+%        \Let{$a[i]$}{$a[J]$}
+%        \Let{$a[J]$}{next record}
+%    \Else
+%        \Let{$a[i]$}{next record} 
+%    \EndIf
+%\EndWhile \\
+%\Return{$a$}
+%\end{algorithmic}
+%\end{algorithm}
 
       
-
-\subsection{\texttt{Random\_Sample}}
-This algorithm is attributed to \cite{cormen_introduction_2009}.
-It is a recursive algorithm that requires only $k$ random integers and does not require sorting.
-
-
-\begin{algorithm}                      % enter the algorithm environment
-\caption{$Random\_Sample$}
-\label{Random_Sample}
-\begin{algorithmic}[1]               % enter the algorithmic environment
-\Require{$n \geq k \geq 0$}
-\Statex
-\Function{Random\_Sample}{$n, k$}
-\If{$k$ is $0$}
-    \Return{the empty set}
-\Else
-     \Let{$S$}{\texttt{Random\_Sample}($n-1, k-1$)}
-     \Let{$i$}{random integer uniformly distributed on $\{1, \dots, n\}$} 
-     \If{$i$ is in $S$}
-           \Let{$S$}{$S \cup \{n\}$}
-     \Else
-            \Let{$S$}{$S\cup\{i\}$}  
-     \EndIf, 
-     \Return{$S$}
-\EndIf
-\EndFunction
-\end{algorithmic}
-\end{algorithm}
-
-
-\subsection{Reservoir algorithms}
+PIKK is not the only method for sampling $k$ out of $n$ items.
+Many other methods only require generating $k$ random numbers, instead of the $n$ required to permute the entire list.
+One simple method is to generate $k$ random uniform integers between $1$ and $n$, then take the items with those indices to be the sample.
+\cite{cormen_introduction_2009} provide a recursive algorithm to draw random samples of size $k$ out of $n$.
+It is elegant in that it does not require sorting, but will not work if $k$ is greater than the maximum recursion depth of the software.
+(In Python, the maximum recursion depth is $2000$, so this algorithm cannot draw samples of greater than $2000$ items.)
+%
+%
+%
+%\begin{algorithm}                      % enter the algorithm environment
+%\caption{$Random\_Sample$}
+%\label{Random_Sample}
+%\begin{algorithmic}[1]               % enter the algorithmic environment
+%\Require{$n \geq k \geq 0$}
+%\Statex
+%\Function{Random\_Sample}{$n, k$}
+%\If{$k$ is $0$}
+%    \Return{the empty set}
+%\Else
+%     \Let{$S$}{\texttt{Random\_Sample}($n-1, k-1$)}
+%     \Let{$i$}{random integer uniformly distributed on $\{1, \dots, n\}$} 
+%     \If{$i$ is in $S$}
+%           \Let{$S$}{$S \cup \{n\}$}
+%     \Else
+%            \Let{$S$}{$S\cup\{i\}$}  
+%     \EndIf, 
+%     \Return{$S$}
+%\EndIf
+%\EndFunction
+%\end{algorithmic}
+%\end{algorithm}
+%
+%
+%\subsection{Reservoir algorithms}
 
 The previous algorithms require $n$ to be known.
-There are \emph{reservoir} algorithms that do not.
+\emph{Reservoir} algorithms, such as Waterman's Algorithm `R`, do not  \cite{knuth_art_1997}.
 Moreover, the algorithms are suitable for streaming (aka \emph{online}) use: items are examined
 sequentially and either enter into the reservoir, or, if not, are never revisited.
-
-\emph{ Algorithm `R`, Waterman} (per Knuth, 1997)
-+ Put first $k$ items into the reservoir
-
-+ when item $k+j$ is examined, either skip it (with probability $j/(k+j)$) or swap for a uniformly selected item in the reservoir (with probability $k/(k+j)$)
-
-+ naive version requires at most $n-k$ pseudo-random numbers
-
-+ closely related to FYKD shuffle
-
-\emph{ Algorithm Z, Vitter (1985)}
-
-Much more efficient than Algorithm `R`, using random skips. Essentially linear in $k$. 
-
-Note: Vitter proposes using the (inaccurate) $J = \lfloor mU \rfloor$ to generate a random integer between $0$ and $m$ in both algorithm `R` and algorithm `Z`. Pervasive!
+Vitter's Algorithm `Z` is even more efficient than Algorithm `R` and uses random skips to reduce run-time to be essentially linear in $k$ \cite{vitter (1985)}.
 
 
 \subsection{Pseudo-random integers}
@@ -532,7 +537,7 @@ MATLAB              & MT             &         & trunc + PIKK         \\
 \end{table}
 
 
-We have some recommendations for best practices for using PRNGs to generate random samples and permutations:
+We recommend the following best practices for using PRNGs to generate random samples and permutations:
 \begin{itemize}
 \item Use a source of real randomness to set the seed with a substantial amount of entropy, e.g., 20 rolls of 10-sided dice.
 \item Record the seed so your analysis is reproducible.
@@ -546,27 +551,11 @@ We have some recommendations for best practices for using PRNGs to generate rand
 \end{itemize}
 
 
-
-
-
-
-+ Building library for permutation tests in Python http://statlab.github.io/permute/
-
-    - Includes NPC
-
-+ Smaller library of examples in R to go with Pesarin & Salmaso's text https://github.com/statlab/permuter
-
-+ Working on plug-in CS-PRNG replacement for MT in Python https://github.com/statlab/cryptorandom
-
-    - Bottleneck in type casting in Python
-    
-## Recommendations
-
-+ Replace the standard PRNGs in R and Python with PRNGs with unbounded state spaces, and cryptographic or near-cryptographic quality
-
-    - Consider using AES in counter mode, since Intel chips have hardware support for AES
-
-+ Replace `floor(1+nU)` in R's `sample()` with bit mask algorithm
+Moreover, we recommend that R and Python upgrade their algorithms to use best practices.
+First, we hope that R will replace the truncation algorithm to generate random integers in the `sample` function with the more precise bit masking algorithm.
+Second, we suggest replacing MT with PRNGs with unbounded state spaces, and cryptographic or near-cryptographic quality.
+We have developed a CS-PRNG prototype for Python at \url{https://github.com/statlab/cryptorandom}.
+As of this writing, the implementation is slow due to bottlenecks in the way Python casts data types.
 
     %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
