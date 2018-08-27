@@ -57,21 +57,25 @@
 \maketitle
 
 \abstract{
-1) Pigeonhole principle shows that PRNGs cannot be adequate
-2) Some sampling algorithms are better than others: ones that use only $k$ PRNs to sample are better than those that use $n$ when $k \ll n$
-3) Common software has these issues.
+\begin{enumerate}
+    \item Pigeonhole arguments shows that PRNGs cannot be adequate
+    \item Some sampling algorithms are better than others: ones that use only $k$ PRNs to sample are better than those that use $n$ when $k \ll n$
+    \item Common software has these issues
+    \item ``textbook'' method for drawing SRS is not good
+    \item ``textbook'' method for generating random integers is not good
+\end{enumerate}
 }
 
 %\abstract{Each chapter should be preceded by an abstract (10--15 lines long) that summarizes the content. The abstract will appear \textit{online} at \url{www.SpringerLink.com} and be available with unrestricted access. This allows unregistered users to read the abstract as a teaser for the complete chapter. As a general rule the abstracts will not appear in the printed version of your book unless it is the style of your particular book or that of the series to which your book belongs.\newline\indent
 %Please use the 'starred' version of the new Springer \texttt{abstract} command for typesetting the text of the online abstracts (cf. source file of this chapter template \texttt{abstract}) and include them with the source files of your manuscript. Use the plain \texttt{abstract} command if the abstract is also to appear in the printed version of the book.}
 
 \begin{quotation}
-The difference between theory and practice is smaller in theory than it is in practice. - unknown
+The difference between theory and practice is smaller in theory than it is in practice. -- unknown
 \end{quotation}
 
 
 \begin{quotation}
-In theory, there's no difference between theory and practice, but in practice, there is. - Jan L.A. van de Snepscheut
+In theory, there's no difference between theory and practice, but in practice, there is. -- Jan L.A.~van~de~Snepscheut
 \end{quotation}
 
 \section{Introduction}
@@ -105,57 +109,70 @@ In theory, there's no difference between theory and practice, but in practice, t
 %However, this procedure crucially relies on the ability to generate independent and
 %identically distributed $\{ G_j \}$.
 
+Pseudo-random number generators (PRNGs) are central to the practice of statistics.
+They are used to draw random samples, allocate patients to treatment, implement the bootstrap, 
+calibrate permutation tests, perform MCMC, and for countless other purposes.
 
+Practitioners seem to take for granted that standard statistical software is up to these tasks.
+Similarly, textbooks give algorithms for generating random integers, random samples,
+and random draws from IID $U[0,1]$ variates,\footnote{%
+Add citation!
+} 
+implicitly or explicitly suggesting that
+the PRNGs in common software packages can be substituted for true IID $U[0,1]$ variables
+without introducing material error.
 
-Resampling statistics, including permutation tests and bootstrapping, crucially rely on software to draw equally likely random samples of data.
-\todo{fill out sampling background}
+We show here that those assumptions are generally incorrect.
 
+For example, whether software can in principle generate all samples of size $k$ from a population of
+$n$ items---much less generate them with equal probability---depends on the size of the problem and the internals of the software, including the underlying PRNG and the
+algorithm used to turn the PRNG output into a sample from the population.
+We show mathematically that even for datasets with hundreds of observations, 
+many pseudo-random number generators
+are in principle incapable of drawing all simple random samples of modest size.
 
-In fact, standard software cannot always do this.
-Whether it is possible depends on the size of the problem and the internals of the software:
-the sampling algorithm and pseudo-random number generator.
-The pseudo-random number generator supplies ``randomness'' and is passed into the sampling algorithm,
-which uses these pseudo-random numbers to determine which items are included in the sample.
-
-We show mathematically that even for datasets with hundreds of observations, many pseudo-random number generators
-are incapable of drawing all simple random samples of a smaller size.
-We apply the pigeonhole principle to random sample ``pigeons'' and pseudo-random number generator ``pigeonholes''
-to estimate the fraction of random samples that cannot be attained.
-There exist statistics that are biased when estimated from these empirical sampling distributions.
-
-Moreover, the choice of sampling algorithm matters:
+The choice of sampling algorithm also matters:
 some algorithms put greater demands on the PRNG than others.
 Algorithms that require more random numbers ``use up'' a PRNG more quickly than algorithms that depend on fewer.
 The algorithms themselves assume that their inputs are uniformly random;
 many software packages use a truncation method of obtaining pseudo-random integers that renders them nonuniform.
-Even if the PRNG were perfectly uniform, this problem would continue to affect the uniformity of random samples.
+Even if the PRNG generated IID uniformly distributed $k$-bit binary integers, this problem would 
+make random samples nonuniformly distributed.
 
-There are three general classes of pseudo-random number generators: really bad, ``adequate for statistics,'' cryptographically secure.
-Are those deemed ``adequate for statistics" really adequate for statistics?
+As a result of the limitations of common PRNGs and sampling algorithms,
+the $L_1$ distance between the uniform distribution on samples of
+size $k$ and the distribution induced by a particular PRNG and sampling algorithm can be very large.
+It follows that there are bounded functions on random samples that have very different expectations with respect to those two distributions.
+
+We consider three broad classes of pseudo-random number generators: generally inadequate for quantitative work, generally considered ``adequate for statistics,'' and cryptographically secure.
+Are those deemed ``adequate for statistics'' really adequate for statistics?
 This paper explores the question.
-Section~\ref{sec:prngs} defines pseudo-randomness and gives examples of good and bad pseudo-random number generators.
-Section~\ref{sec:count} gives several mathematical arguments that demonstrate the limited capability of pseudo-random number
-generators with finite state spaces.
-Section~\ref{sec:algorithms} discusses different sampling algorithms; some ``use up'' more pseudo-random numbers than others.
-Section~\ref{sec:integers} presents how the most straightforward algorithm for converting pseudo-random numbers into pseudo-random integers on an arbitrary
-range goes wrong.
+Section~\ref{sec:prngs} presents an overview of PRNGs and gives examples of better and worse ones.
+Section~\ref{sec:count} shows that, for modest $n$ and $k$, the state spaces of common PRNGs considered adequate for statistics are too small to generate all permutations of $n$ things or all samples of $k$ of $n$ things. 
+Section~\ref{sec:algorithms} discusses different sampling algorithms and shows that some are less demanding on the PRNG than others. 
+Section~\ref{sec:integers} shows that a common, textbook procedure for generating pseudo-random integers using a PRNG can be quite inaccurate; unfortunately, this is essentially the method that R uses.
 Section~\ref{sec:discussion} concludes with recommendations and best practices.
-
 
 
 \section{Pseudo-random number generators}
 \label{sec:prngs}
 
-A pseudo-random number generator (PRNG) is a deterministic algorithm that produces numeric output that is statistically indistinguishable
-from truly random numbers.
+A pseudo-random number generator (PRNG) is a deterministic algorithm that, starting with
+a ``seed,'' produces a sequence of numbers that are supposed to behave like random numbers
+for some purposes.
+An ideal PRNG would have output that is computationally indistinguishable from truly random, uniform, IID 
+binary bits. 
+(Cryptographically secure PRNGs approach this ideal, but common PRNGs do not.)
+
 A PRNG has several components:
-an internal \emph{state}, which is typically initialized with a numeric seed set by the user;
-a function that maps the state to a pseudo-random number (typically 32 bits, but sometimes more);
+an internal \emph{state}, which is typically initialized with a seed set by the user;
+a function that maps the current state to a pseudo-random number (typically 32~bits, but sometimes more);
 and a function that updates the internal state.
 
-If the state space has finite dimension, then the PRNG must eventually revisit its initial state.
-The \emph{period} of a PRNG is the maximum, over initial states, of the number of states visited before the state repeats.
-The period is at most the total number of states.
+If the state space is finite, the PRNG must eventually revisit its initial state.
+The \emph{period} of a PRNG is the maximum, over initial states, of the number of states 
+visited before returning to a state that has been visited.
+The period is at most the total number of possible states.
 If the period is equal to the total number of states, the PRNG is said to have full period.
 Many simple PRNGs have their state equal to the output, so the period is at most the dimension of the output.
 Better PRNGs generally use a state space with much larger dimension than the dimension of the output.
