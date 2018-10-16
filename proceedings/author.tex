@@ -193,8 +193,8 @@ Linear congruential generators (LCGs) have the form $X_{n+1} = (a X_n + c) \mod 
 \emph{modulus} $m$, 
 \emph{multiplier} $a$, and \emph{additive constant} $c$.
 LCGs are fast to compute and require little computer memory.
-The behavior of LCGs is well understood from fundamental number theory.
-For instance, the Hull-Dobell theorem~\cite{fix_me} 
+The behavior of LCGs is well understood from number theory.
+For instance, the Hull-Dobell theorem (\cite{fix_me})
 gives necessary and sufficient conditions for a LCG to have full period for all seeds.
 
 
@@ -210,11 +210,11 @@ and correlation among outputs.
 Other types of PRNGs have been constructed using simple mathematical relations,
 including lagged Fibonacci sequences and xorshift operations \todo{CITE}.
 More complex PRNGs can be built from multiple simpler ones.
-For instance, the KISS generator combines 4 generators of three types, and has a period greater than $2^{210}$.
+For instance, the KISS generator combines four generators of three types, and has a period greater than $2^{210}$.
 Nonetheless, such PRNGs are predictable from a relatively small number of outputs.
 For example, one can find the LCG constants $a$, $c$, and $m$ from only 3 outputs.
 
-The Wichmann-Hill PRNG is a sum of three LCGs, used to produce random values on $[0, 1)$.
+The Wichmann-Hill PRNG is a sum of three LCGs, its output is in $[0, 1)$.
 %Given three seed values $s_1, s_2, s_3$, the next value $r$ is given by
 %\begin{align*}
 %s_1 &= 171 s_1\mod(30269) \\
@@ -225,7 +225,7 @@ The Wichmann-Hill PRNG is a sum of three LCGs, used to produce random values on 
 %
 It is generally not considered adequate for statistics, but was (nominally) the PRNG in Excel for several generations. 
 The generator in Excel had an implementation bug that persisted for several generations.
-Excel didn't allow the seed to be set so issues could not be replicated, but users reportedly generated negative numbers on occasion (\cite{mccullough_microsoft_2008}).
+Excel didn't allow the seed to be set so issues could not be replicated, but users reported that the PRNG occasionally gave a negative output (\cite{mccullough_microsoft_2008}).
 As of 2014, IMF banking Stress tests use Excel \cite{ong14}.
 
 \subsection{Mersenne Twister (MT)}
