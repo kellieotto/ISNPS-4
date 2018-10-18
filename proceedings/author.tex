@@ -72,12 +72,12 @@
 %Please use the 'starred' version of the new Springer \texttt{abstract} command for typesetting the text of the online abstracts (cf. source file of this chapter template \texttt{abstract}) and include them with the source files of your manuscript. Use the plain \texttt{abstract} command if the abstract is also to appear in the printed version of the book.}
 
 \begin{quotation}
-The difference between theory and practice is smaller in theory than it is in practice. -- unknown
+The difference between theory and practice is smaller in theory than it is in practice. ---Unknown
 \end{quotation}
 
 
 \begin{quotation}
-In theory, there's no difference between theory and practice, but in practice, there is. -- Jan L.A.~van~de~Snepscheut
+In theory, there's no difference between theory and practice, but in practice, there is. ---Jan L.A.~van~de~Snepscheut
 \end{quotation}
 
 \section{Introduction}
@@ -151,7 +151,7 @@ This paper explores whether PRNGs generally considered adequate for statistical 
 adequate.
 Section~\ref{sec:prngs} presents an overview of PRNGs and gives examples of better and worse ones.
 Section~\ref{sec:count} shows that, for modest $n$ and $k$, the state spaces of common PRNGs considered adequate for statistics are too small to generate all permutations of $n$ things or all samples of $k$ of $n$ things. 
-Section~\ref{sec:algorithms} discusses` sampling algorithms and shows that some are less demanding on the PRNG than others. 
+Section~\ref{sec:algorithms} discusses sampling algorithms and shows that some are less demanding on the PRNG than others. 
 Section~\ref{sec:integers} shows that a common, textbook procedure for generating pseudo-random integers using a PRNG can be quite inaccurate; unfortunately, this is essentially the method that R uses.
 Section~\ref{sec:discussion} concludes with recommendations and best practices.
 
@@ -163,7 +163,7 @@ a ``seed,'' produces a sequence of numbers that are supposed to behave like rand
 for some purposes.
 An ideal PRNG has output that is statistically indistinguishable from random, uniform, IID 
 binary bits. 
-(Cryptographically secure PRNGs approach this ideal---the bits are computationally indistinguishable from IID uniform bits---but common PRNGs do not.)
+(Cryptographically secure PRNGs approach this ideal---the bits are (or seem to be) computationally indistinguishable from IID uniform bits---but common PRNGs do not.)
 
 A PRNG has several components:
 an internal \emph{state}, initialized with a ``seed'';
@@ -203,16 +203,12 @@ To take advantage of hardware efficiencies, early computer systems implemented L
 with moduli of the form 
 $m = 2^b$, where
 $b$ was the integer word size of the computer.
+This led to wide propagation of a particularly terrible choice, RANDU, originally introduced
+on IBM mainframes (\cite{knuth_art_1997,markowsky14}).
 Such LCGs cannot have full period because $m$ is not prime. 
 Better LCGs have been developed---and some are used in commercial statistical software packages---but they are still
-generally considered to be inadequate for statistics because of their short periods (typically $ \le 2^{32}$) 
+generally considered inadequate for statistics because of their short periods (typically $ \le 2^{32}$) 
 and correlation among outputs.
-
-Other approaches to generating pseudo-random numbers have been
-proposed, and PRNGs can be built by combining simpler ones.
-For instance, the KISS generator combines four generators of three types, and has a period greater than $2^{210}$.
-Nonetheless, such PRNGs are predictable from a relatively small number of outputs.
-For example, one can find the LCG constants $a$, $c$, and $m$ from only 3 outputs.
 
 The Wichmann-Hill PRNG is a sum of three normalized LCGs; its output is in $[0, 1)$.
 %Given three seed values $s_1, s_2, s_3$, the next value $r$ is given by
@@ -228,6 +224,13 @@ The generator in Excel had an implementation bug that persisted for several gene
 Excel didn't allow the seed to be set so issues could not be replicated, but users reported that the PRNG occasionally gave a negative output (\cite{mccullough_microsoft_2008}).
 As of 2014, IMF banking Stress tests used Excel simulations \cite{ong14}.
 
+Other approaches to generating pseudo-random numbers have been
+proposed, and PRNGs can be built by combining simpler ones (carefully--see \cite{knuth_art_1997} on ``randomly'' combining PRNGs).
+For instance, the KISS generator combines four generators of three types, and has a period greater than $2^{210}$.
+Nonetheless, such PRNGs are predictable from a relatively small number of outputs.
+For example, one can find the LCG constants $a$, $c$, and $m$ from only 3 outputs.
+
+
 \subsection{Mersenne Twister (MT)}
 
 Mersenne Twister (MT) (\cite{matsumoto_mersenne_1998}) is a ``twisted'' generalized feedback shift register, a sequence of bitwise and linear operations.
@@ -236,9 +239,9 @@ It is $k$-equidistributed to $32$-bit accuracy for $k \leq 623$,
 meaning that output vectors of length up to $623$ occur with equal frequency over the full period.
 The state is a $624 \times 32$ binary matrix.
 
-MT is the default PRNG in many common software packages, including GNU Octave, Maple, MATLAB, Mathematica, Python, R, Stata, and many more (see Table~\ref{tab:software}).
+MT is the default PRNG in common languages and software packages, including GNU Octave, Maple, MATLAB, Mathematica, Python, R, Stata, and many more (see Table~\ref{tab:software}).
 We show below that it is not adequate for statistics on modern data sets.
-Moreover, MT can have slow ``burn in,'' especially for seeds with many zeros. \todo{CITE: MT website}
+Moreover, MT can have slow ``burn in,'' especially for seeds with many zeros. \todo{CITE: MT website or the revised seeding paper.}
 The outputs for close seeds can be similar, which can affect distributed computations.
 
 \subsection{Cryptographic hash functions}
@@ -253,22 +256,24 @@ A cryptographic hash function $H$ is a function with the following properties:
 \begin{itemize}
 \item $H$ produces a fixed-length ``digest'' (hash) from arbitrarily long ``message'': $H:\{0, 1\}^* \rightarrow \{0, 1\}^L$.
 \item $H$ is inexpensive to compute.
-\item $H$ is ``one-way,'' i.e., it is hard to find the pre-image of any hash except by exhaustive enumeration.
-\item $H$ is collision-resistant, i.e. it is hard to find $M_1 \ne M_2$ such that $H(M_1) = H(M_2)$.
-\item small changes to input produce big changes to output, making it unpredictable
-\item outputs of $H$ are equidistributed: bits of the hash are essentially random 
+\item $H$ is ``one-way,'' i.e., it is hard to find the pre-image of any hash except by exhaustive enumeration (this is the basis of  hashcash ``proof of work'' for Bitcoin and some other distributed ledgers)
+\item $H$ is collision-resistant, i.e., it is hard to find $M_1 \ne M_2$ such that $H(M_1) = H(M_2)$.
+\item small changes to $M$ produce unpredictable, big changes to $H(M)$.
+\item outputs of $H$ are equidistributed: bits of the hash are essentially IID random 
 \end{itemize}
 
 These properties of $H$ make it suitable as the basis of a PRNG:
 It is \emph{as if} $H(M)$ is a random $L$-bit string assigned to $M$.
-We can construct a simple hash-based PRNG with the following procedure:
+We can construct a simple hash-based PRNG with the following procedure, which we first learned about
+from Ronald L.~Rivest:
 
 \begin{enumerate}
-\item Generate a random string $S$ of reasonable length, e.g., 20 characters.
+\item Generate a random string $S$ with a substantial amount of entropy, e.g., 20 rolls of a
+10-sided die.
 \item Set $i=0$. ($i$ is the number of values generated so far.)
 \item Let ``S,i'' be the state.
-\item Set $X_i = {\mbox{Hash}}(S,i),$ interpreted as a (long) hexadecimal number.
-\item Increment $i$ and repeat to generate more PRNs.
+\item Set $X_i = {\mbox{Hash}}(S,i)$, interpreted as a (long) hexadecimal number.
+\item Increment $i$ and return to step~4 to generate the next output.
 \end{enumerate}
 
 Since a message can be arbitrarily long, this PRNG has an unbounded state space.
@@ -539,11 +544,11 @@ We are developing a C implementation that should be faster.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-
-%\begin{acknowledgement}
+\begin{acknowledgement}
+We are grateful to Ronald L.~Rivest for many helpful conversations.
 %If you want to include acknowledgments of assistance and the like at the end of an individual chapter please use the \verb|acknowledgement| environment -- it will automatically render Springer's preferred layout.
-%\end{acknowledgement}
-%
+\end{acknowledgement}
+
 
 \bibliographystyle{plainnat}
 \bibliography{refs}
