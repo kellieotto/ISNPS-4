@@ -27,6 +27,7 @@
 
 \usepackage{amsmath,amssymb}
 
+
 % see the list of further useful packages
 % in the Reference Guide
 
@@ -34,6 +35,9 @@
                        % please use the style svind.ist with
                        % your makeindex program
 \newcommand{\todo}[1]{{\color{red}{TO DO: \sc #1}}}
+
+\renewcommand{\arraystretch}{1}
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -55,60 +59,69 @@
 \maketitle
 
 \abstract{
-   The pseudo-random number generators (PRNGs), sampling algorithms, and algorithms for generating random integers in some common statistical packages and programming languages don't produce uniform randomness.
-    Most use PRNGs with state spaces that are too small for contemporary sampling problems and randomization-based methods such as the bootstrap and permutation tests, as simple pigeonhole arguments show.
-    Some use an intuitive, but simplistic, sampling algorithm that involves generating a random permutation, overtaxing the PRNG even for modest population sizes.
-    Some use a better algorithm involving generating random integers to select items; 
-    but of those, some generate random integers using a frequently taught method (multiply a random binary fraction or a float by a constant and take the floor) that can lead to extremely nonuniform sampling. 
+   The pseudo-random number generators (PRNGs), sampling algorithms, and algorithms for generating random integers in some common statistical packages and programming languages are unnecessarily
+   inaccurate, by an amount that may matter for statistical inference.
+    Most use PRNGs with state spaces that are too small for contemporary sampling problems and methods such as the bootstrap and permutation tests.
+    The algorithms many packages use to generate random samples involve the false assumption
+    that PRNGs produce IID uniform outputs.
+    The discreteness of PRNG outputs and the limited state space of common PRNGs 
+    cause those algorithms to perform poorly in practice.
+%    Some use a sampling algorithm based on permuting the population.
+%    If PRNGs produced IID uniform random variables, this method would work, but in practice it 
+%    overtaxes PRNGs for modest population sizes.
+%    Some use better sampling algorithms based on generating random integers,
+%    but some of those generate the random integers by multiplying a pseudo-random number by a constant and taking the floor: another mathematically correct method that fails in practice.
     Statistics packages and scientific programming languages should use cryptographically secure PRNGs by default
     (not for their security properties, but for their statistical ones), and offer weaker PRNGs only as an option.
-    Software should not use inaccurate methods, such as generating a random sample by randomly permuting the population and taking the first $k$ items 
-    and generating random integers by multiplying a binary fraction or float by a constant and rounding the result,
-    when more accurate methods are available.
+    Software should not use methods that assume PRNG outputs are IID $U[0,1)$ random variables, 
+    such as generating a random sample by randomly permuting the population and taking the first $k$ items 
+    or generating random integers by multiplying a pseudo-random binary fraction or float by a constant and rounding the result.
+    More accurate methods are available.
 }
 
 %\abstract{Each chapter should be preceded by an abstract (10--15 lines long) that summarizes the content. The abstract will appear \textit{online} at \url{www.SpringerLink.com} and be available with unrestricted access. This allows unregistered users to read the abstract as a teaser for the complete chapter. As a general rule the abstracts will not appear in the printed version of your book unless it is the style of your particular book or that of the series to which your book belongs.\newline\indent
 %Please use the 'starred' version of the new Springer \texttt{abstract} command for typesetting the text of the online abstracts (cf. source file of this chapter template \texttt{abstract}) and include them with the source files of your manuscript. Use the plain \texttt{abstract} command if the abstract is also to appear in the printed version of the book.}
 
 \begin{quotation}
-The difference between theory and practice is smaller in theory than it is in practice. ---Unknown
+The difference between theory and practice is smaller in theory than it is in practice. \\ ---Unknown
 \end{quotation}
 
 
 \begin{quotation}
-In theory, there's no difference between theory and practice, but in practice, there is. ---Jan L.A.~van~de~Snepscheut
+In theory, there's no difference between theory and practice, but in practice, there is. \\ ---Jan L.A.~van~de~Snepscheut
 \end{quotation}
 
 \section{Introduction}
 \label{sec:introduction}
 
 
-Pseudo-random number generators (PRNGs) are central to the practice of statistics.
+Pseudo-random number generators (PRNGs) are central to the practice of Statistics.
 They are used to draw random samples, allocate patients to treatment, perform the bootstrap, 
 calibrate permutation tests, perform MCMC, approximate $p$-values, partition data into training and test sets, and countless other purposes.
 
 Practitioners generally do not question whether standard software is adequate for these tasks.
-Textbooks give algorithms for generating random integers, random samples,
-and independent and identically distributed (IID) random variates 
-that implicitly or explicitly assume that the PRNGs in common software packages 
+This paper explores whether PRNGs generally considered adequate for statistical work really are
+adequate, and whether standard software uses appropriate algorithms for generating random integers, random samples,
+and independent and identically distributed (IID) random variates.
+
+
+Textbooks give methods that implicitly or explicitly assume that PRNGs 
 can be substituted for true IID $U[0,1)$ variables without introducing material error 
 \cite{stine_statistics_2014, leblanc_statistics_2004, dahlberg_practical_2010, press_numerical_1988, peck_introduction_2011}.
-
 We show here that this assumption is incorrect for algorithms in many commonly used statistical packages,
-including MATLAB, R, SPSS, and Stata.
+including MATLAB, Python's \texttt{random} module, R, SPSS, and Stata.
 
 For example, whether software can in principle generate all samples of size $k$ from a population of
-$n$ items---much less generate them with equal probability---depends on the size of the problem and the internals of the software, including the underlying PRNG and the
-algorithm used to turn PRNG output into a sample.
+$n$ items---much less generate them with equal probability---depends on the size of the problem and the internals of the software, including the underlying PRNG and the \emph{sampling algorithm},
+the method used to map PRNG output into a sample.
 We show that even for datasets with hundreds of observations, 
 many PRNGs cannot draw all subsets of size $k$, for modest values of $k$.
 
-The choice of sampling algorithm---the mapping from PRNG output to a random sample---also matters:
-some algorithms put greater demands on the PRNG than others.
-Some involve permuting the data; these quickly run through a full period and begin recycling values
-because the maximum number of items that common PRNGs can permute ranges from 13 to 2084, far smaller than many data sets.
-Others require uniformly distributed integers (as opposed to the approximately $U[0,1)$ PRNG outputs) as input, but many software packages generate
-pseudo-random integers using a truncation method that does not give nonuniform outputs, even
+Some sampling algorithms put greater demands on the PRNG than others.
+For instance, some involve permuting the data.
+The number of items that common PRNGs can permute ranges from at most 13 to at most 2084, far smaller than many data sets.
+Other sampling algorithms require uniformly distributed integers (as opposed to the approximately $U[0,1)$ PRNG outputs) as input, but many software packages generate
+pseudo-random integers using a truncation method that does not yield uniformly distributed integers, even
 if the PRNG were uniformly distributed on $k$-bit binary integers.
 
 As a result of the limitations of common PRNGs and sampling algorithms,
@@ -116,12 +129,9 @@ the $L_1$ distance between the uniform distribution on samples of
 size $k$ and the distribution induced by a particular PRNG and sampling algorithm can be nearly $2$.
 It follows that there exist bounded functions of random samples whose expectations with respect to those two distributions differ substantially. 
 
-We divide PRNGs into three broad classes: those generally inadequate for quantitative work, those generally considered adequate for statistics, and cryptographically secure
-PRNGs.
-This paper explores whether PRNGs generally considered adequate for statistical work really are
-adequate.
+% We divide PRNGs into three broad classes: those generally inadequate for quantitative work, those generally considered adequate for statistics, and cryptographically secure PRNGs.
 Section~\ref{sec:prngs} presents an overview of PRNGs and gives examples of better and worse ones.
-Section~\ref{sec:count} shows that, for modest $n$ and $k$, the state spaces of common PRNGs considered adequate for statistics are too small to generate all permutations of $n$ things or all samples of $k$ of $n$ things. 
+Section~\ref{sec:count} shows that, for modest $n$ and $k$, the state spaces of common PRNGs considered adequate for Statistics are too small to generate all permutations of $n$ things or all samples of $k$ of $n$ things. 
 Section~\ref{sec:algorithms} discusses sampling algorithms and shows that some are less demanding on the PRNG than others. 
 Section~\ref{sec:integers} shows that a common, textbook procedure for generating pseudo-random integers using a PRNG can be quite inaccurate; unfortunately, this is essentially the method that R uses.
 Section~\ref{sec:discussion} concludes with recommendations and best practices.
@@ -140,7 +150,7 @@ an internal \emph{state}, initialized with a ``seed'';
 a function that maps the current state to an output;
 and a function that updates the internal state.
 
-If the state space is finite, the PRNG must eventually revisit its initial state.
+If the state space is finite, the PRNG must eventually revisit a state---after which, it repeats.
 The \emph{period} of a PRNG is the maximum, over initial states, of the number of states 
 the PRNG visits before returning to a state already visited.
 The period is at most the total number of possible states.
@@ -154,9 +164,9 @@ behaves well.
 
 \subsection{Simple PRNGs}
 
-\begin{quotation}
-Anyone who considers arithmetical methods of producing random digits is, of course, in a state of sin.  --John von Neumann
-\end{quotation}
+%\begin{quotation}
+%Anyone who considers arithmetical methods of producing random digits is, of course, in a state of sin.  --John von Neumann
+%\end{quotation}
 
 
 Linear congruential generators (LCGs) have the form $X_{n+1} = (a X_n + c) \mod m$, for a 
@@ -168,7 +178,7 @@ For instance, the Hull-Dobell theorem \cite{hullDobell62}
 gives necessary and sufficient conditions for a LCG to have full period for all seeds,
 and there are upper bounds on the number of hyperplanes of dimension $k$
 that contain all $k$-tuples of outputs, as a function of $m$ \cite{marsaglia_random_1968}.
-A smaller number of hyperplanes containing all $k$-tuples indicates greater correlation among the PRNG outputs.
+A smaller number of hyperplanes containing all $k$-tuples indicates greater predictability of PRNG outputs.
 
 To take advantage of hardware efficiencies, early computer systems implemented LCGs 
 with moduli of the form 
@@ -178,7 +188,7 @@ This led to wide propagation of a particularly terrible choice, RANDU, originall
 on IBM mainframes \cite{knuth_art_1997,markowsky14}.
 LCGs of this form cannot have full period because $m$ is not prime. 
 Better LCGs have been developed---and some are used in commercial statistical software packages---but they are still
-generally considered inadequate for statistics because of their short periods (typically $ \le 2^{32}$) 
+generally considered inadequate for Statistics because of their short periods (typically $ \le 2^{32}$) 
 and correlation among outputs.
 
 The Wichmann-Hill PRNG is a sum of three normalized LCGs; its output is in $[0, 1)$.
@@ -190,10 +200,12 @@ The Wichmann-Hill PRNG is a sum of three normalized LCGs; its output is in $[0, 
 %r &= (s_1/30269 + s_2/30307 + s_3/30323) \mod(1)
 %\end{align*}
 %
-It is generally not considered adequate for statistics, but was (nominally) the PRNG in Excel for several generations. 
+It is generally not considered adequate for Statistics, but was (nominally) the PRNG in Excel 
+2003, 2007, and 2010. 
 The generator in Excel had an implementation bug that persisted for several generations.
 Excel didn't allow the seed to be set so issues could not be replicated, but users reported that the PRNG occasionally gave a negative output \cite{mccullough_microsoft_2008}.
 As of 2014, IMF banking Stress tests used Excel simulations \cite{ong14}.
+This worries us.
 
 Other approaches to generating pseudo-random numbers have been
 proposed, and PRNGs can be built by combining simpler ones (carefully--see \cite{knuth_art_1997} on ``randomly'' combining PRNGs).
@@ -207,13 +219,14 @@ For example, one can determine the LCG constants $a$, $c$, and $m$ from only 3 o
 Mersenne Twister (MT) \cite{matsumoto_mersenne_1998} is a ``twisted'' generalized feedback shift register, a sequence of bitwise and linear operations.
 Its state space is $19,937$ bits and it has an enormous period $2^{19937}-1$, a Mersenne prime.
 It is $k$-equidistributed to $32$-bit accuracy for $k \leq 623$, 
-meaning that output vectors of length up to $623$ occur with equal frequency over the full period.
+meaning that output vectors of length up to $623$ (except the zero vector) occur with equal frequency over the full period.
 The state is a $624 \times 32$ binary matrix.
 
 MT is the default PRNG in common languages and software packages, including Python, R, Stata, GNU Octave, Maple, MATLAB, Mathematica, and many more (see Table~\ref{tab:software}).
 We show below that it is not adequate for statistical analysis of modern data sets.
 Moreover, MT can have slow ``burn in,'' especially for seeds with many zeros \cite{saito_simd-oriented_2008}.
-The outputs for close seeds can be similar, which can affect distributed computations.
+The outputs for close seeds can be similar, which makes seeding distributed computations
+delicate.
 
 \subsection{Cryptographic hash functions}
 The PRNGs described above are quick to compute but predictable,
@@ -234,7 +247,7 @@ A \emph{cryptographic hash function} $H$ is a function with the following proper
 \end{itemize}
 
 These properties of $H$ make it suitable as the basis of a PRNG:
-It is \emph{as if} $H(M)$ is a random $L$-bit string assigned to $M$.
+It is \emph{as if} $H(M)$ is a uniformly distributed random $L$-bit string assigned to $M$.
 We can construct a simple hash-based PRNG with the following procedure, which we first learned about
 from Ronald L.~Rivest:
 
@@ -265,17 +278,17 @@ one pigeon is put in each hole.
 The corollary implies that a PRNG cannot generate more permutations or samples than the number of states the PRNG has (which is in turn an upper bound on the period of the PRNG).
 Of course, that does not mean that the permutations or samples a PRNG can generate are generated with approximately equal probability: that depends on the quality of the PRNG, not just whether the number of states is less than, equal to, or greater than the number of permutations or samples.
 
-Nonetheless, it follows that no PRNG with a finite state space can be ``adequate for statistics'' for every statistical problem.
+Nonetheless, it follows that no PRNG with a finite state space can be ``adequate for Statistics'' for every statistical problem.
 
 The number of permutations of $n$ objects is $n!$, the number of possible samples of $k$ of $n$ items
-with replacement is $n^k$,  and the number of possible samples of $k$ of $n$ without replacement is $n \choose k$.
+with replacement is $n^k$,  and the number of possible samples of $k$ of $n$ without replacement is $\tbinom{n}{k}$.
 These bounds are helpful for counting pigeonholes:
 \begin{itemize}
 \item Stirling bounds: $ e n^{n+1/2} e^{-n} \ge n! \ge \sqrt{2 \pi} n^{n+1/2} e^{-n}.$
 \item Entropy bounds:
-$ \frac{2^{nH(k/n)}}{n+1} \le {n \choose k} \le 2^{nH(k/n)},$ where $H(q) \equiv -q \log_2(q) - (1-q) \log_2 (1-q)$.
+$ \frac{2^{nH(k/n)}}{n+1} \le \tbinom{n}{k} \le 2^{nH(k/n)},$ where $H(q) \equiv -q \log_2(q) - (1-q) \log_2 (1-q)$.
 \item Stirling combination bounds:
-for $\ell \ge 1$ and $m \ge 2$, $ { {\ell m } \choose { \ell }} \ge \frac{m^{m(\ell-1)+1}}{\sqrt{\ell} (m-1)^{(m-1)(\ell-1)}}. $
+for $\ell \ge 1$ and $m \ge 2$, $ \tbinom{\ell m}{\ell } \ge \frac{m^{m(\ell-1)+1}}{\sqrt{\ell} (m-1)^{(m-1)(\ell-1)}}. $
 \end{itemize}
 
 Table~\ref{tab:pigeonhole} counts permutation pigeons and PRNG pigeonholes.
@@ -287,30 +300,34 @@ MT fails too: fewer than 1\% of permutations of 2084 items are actually attainab
 For a PRNG of each size state space, the table gives examples where some samples or permutations 
 must be unobtainable.}
 \label{tab:pigeonhole}       
-\begin{tabular}[h]{p{4cm}p{2.4cm}p{4cm}p{2cm}}
+\begin{tabular}[h]{p{4.5cm}p{2.4cm}p{4cm}p{2cm}}
 \hline\noalign{\smallskip}
-Feature & Size & Full & Scientific notation  \\
+Feature & Size & Full & Scientific \\
+            &        &       & notation  \\
 \noalign{\smallskip}\svhline\noalign{\smallskip}
 32-bit state space & $2^{32}$ & 4,294,967,296 & $4.29 \times 10^9$ \\
 Permutations of 13 & $13!$ & 6,227,020,800 & $6.23 \times 10^9$ \\
-Samples of 10 out of 50 & ${50 \choose 10}$ &  10,272,278,170 & $1.03\times 10^{10} $ \\
+Samples of 10 out of 50 & $\tbinom{50}{10}$ &  10,272,278,170 & $1.03\times 10^{10} $ \\
 % Samples of 10 out of 100 &${100 \choose 10}$ & 17,310,309,456,440 & $1.73 \times 10^{13}$ \\
-Fraction of attainable samples with 32-bit state space & $\frac{2^{32}}{{50 \choose 10}}$   & 0.418 & \\
+{}\\
+Fraction of attainable samples with 32-bit state space & ${2^{32}}/{\tbinom{50}{10}}$   & 0.418 & \\
 \noalign{\smallskip}\svhline\noalign{\smallskip}
 64-bit state space & $2^{64}$ & 18,446,744,073,709,551,616 & $1.84 \times 10^{19}$ \\
 Permutations of 21 & $21!$ &  51,090,942,171,709,440,000 & $5.11 \times 10^{19}$ \\
-Samples of 10 out of 500 & ${500 \choose 10}$ & & $2.46 \times 10^{20}$ \\
-Fraction of attainable samples with 64-bit state space & $\frac{2^{64}}{{500 \choose 10}}$ &  0.075 & \\
+Samples of 10 out of 500 & $\tbinom{500}{10}$ & & $2.46 \times 10^{20}$ \\
+{}\\
+Fraction of attainable samples with 64-bit state space & ${2^{64}}/{\tbinom{500}{10}}$ &  0.075 & \\
 \noalign{\smallskip}\svhline\noalign{\smallskip}
 128-bit state space & $2^{128}$ &  & $3.40 \times 10^{38}$ \\
 Permutations of 35 & $35!$ &   & $1.03 \times 10^{40}$ \\
-Samples of 25 out of 500 & ${500 \choose 25}$ & & $2.67 \times 10^{42}$ \\
-Fraction of attainable samples with 128-bit state space & $\frac{2^{128}}{{500 \choose 25}}$ &  0.0003 & \\
+Samples of 25 out of 500 & $\tbinom{500}{25}$ & & $2.67 \times 10^{42}$ \\
+{}\\
+Fraction of attainable samples with 128-bit state space & ${2^{128}}/{\tbinom{500}{25}}$ &  0.0003 & \\
 \noalign{\smallskip}\svhline\noalign{\smallskip}
 MT state space & $2^{32 \times 624}$ & & $9.27\times 10^{6010}$ \\
 Permutations of 2084 & $2084!$ &   & $3.73 \times 10^{6013}$ \\
-Samples of 1000 out of 390 million & ${3.9\times 10^8 \choose 1000}$ & & $> 10^{6016}$ \\
-Fraction of attainable samples & $\frac{2^{32 \times 624}}{{3.9\times 10^8 \choose 1000}}$ &  & $< 1.66 \times 10^{-6}$ \\
+Samples of 1000 out of 390 million & $\tbinom{3.9\times 10^8}{1000}$ & & $> 10^{6016}$ \\
+Fraction of attainable samples & ${2^{32 \times 624}}/{\tbinom{3.9\times 10^8}{1000}}$ &  & $< 1.66 \times 10^{-6}$ \\
 \noalign{\smallskip}\svhline\noalign{\smallskip}
 %Fraction of attainable permutations of 7000 with 32-bit state space & $\frac{2^{32}}{7000!}$  & &  $< 10^{-54,958}$  \\
 %Fraction of attainable shuffles by putting the top card on the bottom with $1/2$ chance & $\frac{2}{52!}$ & & $2.48\times 10^{-68}$\\
@@ -323,16 +340,18 @@ Fraction of attainable samples & $\frac{2^{32 \times 624}}{{3.9\times 10^8 \choo
 Simple probability bounds demonstrate the extent of bias introduced by using a PRNG with insufficiently large
 state space to approximate the sampling distribution of a statistic.
 Suppose ${\mathbb P}_0$ and ${\mathbb P}_1$ are probability distributions on a common measurable space. 
-If there is some set $S$ for which ${\mathbb P}_0(S) = \epsilon$ and ${\mathbb P}_1(S) = 0$, then $\|{\mathbb P}_0 - {\mathbb P}_1 \|_1 \ge 2 \epsilon$.
+If there is some measurable set $S$ for which ${\mathbb P}_0(S) = \epsilon$ and ${\mathbb P}_1(S) = 0$, then $\|{\mathbb P}_0 - {\mathbb P}_1 \|_1 \ge 2 \epsilon$.
 Thus there is a function $f$ with $|f| \le 1$ such that 
 
 $${\mathbb E}_{{\mathbb P}_0}f -  {\mathbb E}_{{\mathbb P}_1}f \ge 2 \epsilon.$$
 
-In this context, ${\mathbb P}_0$ is the true distribution of statistics across equally likely resamples of a population 
-and ${\mathbb P}_1$ is the distribution of statistics attainable using a PRNG to resample from the population.
+In the present context, ${\mathbb P}_0$ is the uniform distribution (on samples or permutations)
+and ${\mathbb P}_1$ is the distribution induced by the PRNG and sampling algorithm.
 If the PRNG has $n$ states and we want to generate $N>n$ equally likely outcomes, at least $N-n$ outcomes will have probability zero instead of $1/N$.
 Some statistics will have bias of at least $2 \times \frac{N-n}{N}$.
-As seen in Table~\ref{tab:pigeonhole}, the fraction of attainable samples or permutations can be less than 1\% in many cases, making the bias nearly $2$. 
+As seen in Table~\ref{tab:pigeonhole}, the fraction of attainable samples or 
+permutations can be less than 1\% in problems of a size commonly encountered
+in practice, making the bias nearly $2$. 
 
 \section{Sampling algorithms}
 \label{sec:algorithms}
@@ -340,22 +359,20 @@ As seen in Table~\ref{tab:pigeonhole}, the fraction of attainable samples or per
 Given a source of randomness, there are many ways to draw a simple random sample.
 A common approach is like shuffling a deck of $n$ cards, then dealing the top $k$:
 assign a (pseudo-)random number to each item, sort the items based on that number
-to produce a random permutation of the population, 
+to produce a permutation of the population, 
 then take the first $k$ elements of the permuted list to be the sample
 \cite{stine_statistics_2014, leblanc_statistics_2004, dahlberg_practical_2010}.
 We call this algorithm PIKK: Permute indices and keep $k$.
 
-If the random numbers really are independent and identically distributed, then every permutation is equally likely, 
-and it follows that the first $k$ are a simple random sample.
-The algorithm assumes that permutations are equiprobable; if not, then samples generated using this algorithm generally will not be either. 
-(Of course, there's a possibility that even if the permutations are not equiprobable, the samples still
-are, but there's no reason to think they would be and certainly no proof.)
-Furthermore, this algorithm is inefficient: it requires generating $n$ random numbers and then an $O(n\log n)$ sorting operation.
+If the random numbers really were IID $U[0,1)$, then every permutation would be equally likely, 
+and the first $k$ would be a simple random sample.
+But if the permutations are not equiprobable, there is no reason to think that the first $k$ 
+elements comprise a random sample. 
+Furthermore, this algorithm is inefficient: it requires generating 
+$n$ random numbers and then an $O(n\log n)$ sorting operation.
 
-There are a number of standard ways to generate a random permutation.
-PIKK uses one of the least efficient ways, assigning a number to each element and sorting.
-A more efficient method is the ``Fisher-Yates shuffle'' or ``Knuth shuffle'' (Knuth attributes it to Durstenfeld) \cite{knuth_art_1997}.
-This algorithm involves generating independent random integers on various ranges, but does not require sorting.
+There are better ways to generate a random permutation, such as the ``Fisher-Yates shuffle'' or ``Knuth shuffle'' (Knuth attributes it to Durstenfeld) \cite{knuth_art_1997},
+which involves generating $n$ independent random integers on various ranges, but no sorting.
 There is also a version suitable for \emph{streaming}, i.e., permuting a list that has an (initially) unknown number of elements.
 Generating $n$ pseudo-random numbers places more demand on a PRNG than some sampling algorithms discussed below, which only require $k$ pseudo-random numbers.
 
@@ -374,32 +391,33 @@ using random skips to reduce runtime to be essentially linear in $k$ \cite{vitte
 \subsection{Pseudo-random integers}
 \label{sec:integers}
 Many sampling algorithms require pseudo-random integers on $\{1, \ldots, m\}$.
-The output of a PRNG is typically a $w$-bit integer, so some method is needed to rescale it to the range $\{1, \ldots, m\}$.
+The output of a PRNG is typically a $w$-bit integer, so some method is needed to map it to the range $\{1, \ldots, m\}$.
 
 A textbook way to generate an integer on the range $\{1, \ldots, m\}$ is to first draw a random $X \sim U[0,1)$
-and then define $Y \equiv 1 + \lfloor mX \rfloor$ (\cite{press_numerical_1988, peck_introduction_2011}). 
+and then define $Y \equiv 1 + \lfloor mX \rfloor$ \cite{press_numerical_1988, peck_introduction_2011}. 
 In practice, PRNG outputs are not $U[0,1)$: they are derived by normalizing a value that is
  (supposed to be) uniformly distributed on $w$-bit integers. 
 
 The distribution of $Y$ is not uniform on $\{1, \ldots, m\}$ unless $m$ is a power of 2.
 If $m > 2^w$, at least $m-2^w$ values will have probability 0 instead of probability $1/m$.
-For $m < 2^w$, the ratio of the largest to smallest selection probability is, to first order,  $1+ m 2^{-w+1}$ \cite{knuth_art_1997}.
-
-This ratio can grow large quickly: For $m = 10^9$ and $w=32$, this bound is approximately $1.466$. 
 If $w=32$, then for $m>2^{32}=4.24 \times 10^9$, some values will have probability 0. 
-This is the algorithm that R (Version 3.5.1) \cite{R_2018} uses to generate pseudo-random integers,
+
+Conversely, there exists $m < 2^w$ such that the ratio of the largest to smallest selection probability
+of $\{1, \ldots, m\}$ is, to first order,  $1+ m 2^{-w+1}$ \cite{knuth_art_1997}.
+R (Version 3.5.1) \cite{R_2018} uses this multiply-and-floor approach to generate 
+pseudo-random integers,
 which eventually are used in the main sampling functions.
-Duncan Murdoch devised a simple simulation that shows how large the problem can be:
+Duncan Murdoch devised a simple simulation that shows how large the inhomogeneity of selection
+probabilities can be:
 for $m=  (2/5) \times 2^{32} = 1,717,986,918$, the \texttt{sample()} function generates about 40\% even numbers and about 60\% odd numbers \footnote{ %
 \url{https://stat.ethz.ch/pipermail/r-devel/2018-September/076827.html}, last visited 17 October 2018
 }. %
-
     
 A more accurate way to generate random integers on $\{1, \dots, m\}$ is to use pseudo-random bits directly. 
 This is not a new idea; \cite{hodges_basic_1970} describe essentially the same procedure to draw integers by hand
-from random digit tables.
+from random decimal digit tables.
 The integer $m-1$ can be represented with $\mu = \lceil \log_2(m-1) \rceil$ bits. 
-To generate a pseudo-random integer at most $m$, first generate $\mu$ pseudo-random bits (for instance, by taking the most significant $\mu$ bits from the PRNG output) and interpreting it as an integer.  
+To generate a pseudo-random integer at most $m$, first generate $\mu$ pseudo-random bits (for instance, by taking the most significant $\mu$ bits from the PRNG output) and interpret the bits as a binary integer.  
 If the integer is larger than $m-1$, then discard it and draw another $\mu$ bits until the $\mu$ bits represent an integer less than or equal to $m-1$.
 When that occurs, return the integer, plus 1.
 This procedure potentially requires throwing out (in expectation) almost half the draws if $m-1$ is 
@@ -419,60 +437,60 @@ A PRNG with a 32-bit state space cannot generate all permutations of 13 items.
 The Mersenne Twister (MT) cannot generate all permutations of 2084 items.
 
 Table~\ref{tab:software} lists the PRNGs and sampling algorithms used in common statistical packages.
-Most use MT as their default PRNG; \emph{is} MT adequate for statistics?
+Most use MT as their default PRNG; \emph{is} MT adequate for Statistics?
 Section~\ref{sec:L1bounds} shows that for some statistics, the $L_1$ distance between the theoretical value and the attainable value using a given PRNG
  is big for even modest sampling and permutation problems.
 Because MT is $k$-equidistributed, we should expect that ensemble frequencies will be approximately
 what they should be.
 However, we expect dependence across samples.
-We have been searching for empirical problems that occur across seeds, large enough to matter in 
-$O(10^5)$ replications or less.
+We have been searching for empirical problems large enough to matter in 
+$O(10^5)$ replications or less, and are not idiosyncratic to a few bad seeds.
 We have examined simple random sample frequencies, the frequency of derangements and partial derangements, the Spearman correlation between permutations, 
 and other statistics; so far, we have not found a statistic with consistent
 bias large enough to be detected in $O(10^5)$ replications.
 MT must produce bias in some statistics, but which?
 
+\renewcommand{\arraystretch}{1}
+
 \begin{table}
-\caption{PRNGs and sampling algorithms used in common statistical and mathematical software packages. The trunc algorithm uses the flawed method to generate pseudo-random integers on a specified range. The mask algorithm uses the favored method to do so.}
+\caption{PRNGs and sampling algorithms used in common statistical and mathematical software packages. The `floor' algorithm is the flawed multiply-and-floor method of generating pseudo-random integers. The `mask' algorithm is better.}
 \label{tab:software}      
-\begin{tabular}[h]{p{2.5cm}p{2.4cm}p{2.5cm}p{4cm}}
+\begin{tabular}[h]{p{2.5cm}p{2.2cm}p{1.8cm}p{4.9cm}}
 \hline\noalign{\smallskip}
 Package/Language & Default PRNG & Other & SRS Algorithm  \\
 \noalign{\smallskip}\svhline\noalign{\smallskip}
-SAS 9.2              & MT         	& 32-bit LCG & Floyd's ordered hash or \cite{fan_development_1962} \\
-SPSS 20.0          & 32-bit LCG  & MT1997ar  & trunc + random indices \\
+SAS 9.2              & MT         	& 32-bit LCG & Floyd's ordered hash or Fan's method \cite{fan_development_1962} \\
+SPSS 20.0          & 32-bit LCG  & MT1997ar  & floor + random indices \\
 SPSS $\le$ 12.0 & 32-bit LCG  &         &                \\
 STATA 13            & KISS 32      &         & PIKK           \\
 STATA 14            & MT              &         & PIKK           \\
-R                         & MT              &         & trunc + random indices \\
+R                         & MT              &         & floor + random indices \\
 Python                 & MT             &         & mask + random indices  \\
-MATLAB              & MT             &         & trunc + PIKK         \\
+MATLAB              & MT             &         & floor + PIKK         \\
 \noalign{\smallskip}\hline\noalign{\smallskip}
 \end{tabular}
 \end{table}
 
 
-We recommend the following best practices for using PRNGs to generate random samples and permutations:
+We recommend the following practices and considerations for using PRNGs in Statistics:
 \begin{itemize}
+\item Consider the size of the problem: are your PRNG and sampling algorithm adequate?
 \item Use a source of real randomness to set the seed with a substantial amount of entropy, e.g., 20 rolls of 10-sided dice.
 \item Record the seed so your analysis is reproducible.
-\item Use a cryptographically secure PRNG unless you know that MT is adequate for your problem.
 \item Avoid standard linear congruential generators, the Wichmann-Hill generator, and PRNGs with small state spaces.
-\item Use open-source software, and record the version of the software.
-\item Use a sampling algorithm that does not ``waste randomness.'' Avoid permuting the entire population: do not use PIKK.
+\item Use a cryptographically secure PRNG unless you know that MT is adequate for your problem.
+\item Use a sampling algorithm that does not overtax the PRNG. Avoid permuting the entire population to draw a random sample: do not use PIKK.
 \item Beware discretization issues in the sampling algorithm; many methods assume the PRNG produces $U[0,1]$ or $U[0,1)$ random numbers, rather than (an approximation to) numbers that are uniform on $w$-bit binary integers.
-\item Consider the size of the problem: are your PRNG and sampling algorithm adequate?
 \end{itemize}
 
 
-Moreover, we recommend that R and Python upgrade their algorithms to use best practices.
-We think R should replace the truncation algorithm it uses to generate random integers in the \texttt{sample} function (and other functions) with the more precise bit masking algorithm, as discussed
+We also recommend that R and Python upgrade their algorithms to use best practices.
+R should replace the truncation algorithm it uses to generate random integers in the \texttt{sample} function (and other functions) with the more precise bit masking algorithm, as discussed
 in \cite{ottoboniStark18}.
 And we suggest R and Python use cryptographically secure PRNGs by default, with an option of using MT instead in case the difference in speed matters.
 We have developed a CS-PRNG prototype for Python at \url{https://github.com/statlab/cryptorandom}.
-The current implementation is unnecessarily slow, due to bottlenecks in the way Python data type
-conversions. 
-We are developing a faster C implementation.
+The current implementation is slow (the bottleneck is Python data type conversions, not computation);
+we are developing a faster C implementation.
 
     %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
