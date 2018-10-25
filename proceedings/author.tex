@@ -63,7 +63,7 @@
    inaccurate, by an amount that may matter for statistical inference.
     Most use PRNGs with state spaces that are too small for contemporary sampling problems and methods such as the bootstrap and permutation tests.
     The random sampling algorithms in many packages rely on the false assumption
-    that PRNGs produce IID uniform outputs.
+    that PRNGs produce IID $U[0, 1)$ outputs.
     The discreteness of PRNG outputs and the limited state space of common PRNGs 
     cause those algorithms to perform poorly in practice.
 %    Some use a sampling algorithm based on permuting the population.
@@ -96,7 +96,7 @@ In theory, there's no difference between theory and practice, but in practice, t
 
 
 Pseudo-random number generators (PRNGs) are central to the practice of Statistics.
-They are used to draw random samples, allocate patients to treatment, perform the bootstrap, 
+They are used to draw random samples, allocate patients to treatments, perform the bootstrap, 
 calibrate permutation tests, perform MCMC, approximate $p$-values, partition data into training and test sets, and countless other purposes.
 
 Practitioners generally do not question whether standard software is adequate for these tasks.
@@ -115,7 +115,7 @@ For example, whether software can in principle generate all samples of size $k$ 
 $n$ items---much less generate them with equal probability---depends on the size of the problem and the internals of the software, including the underlying PRNG and the \emph{sampling algorithm},
 the method used to map PRNG output into a sample.
 We show that even for datasets with hundreds of observations, 
-many PRNGs cannot draw all subsets of size $k$, for modest values of $k$.
+many common PRNGs cannot draw all subsets of size $k$, for modest values of $k$.
 
 Some sampling algorithms put greater demands on the PRNG than others.
 For instance, some involve permuting the data.
@@ -123,7 +123,7 @@ The number of items that common PRNGs can permute ranges from at most 13 to at m
 Other sampling algorithms require uniformly distributed integers (as opposed to the approximately $U[0,1)$ PRNG outputs) as input.
 Many software packages generate
 pseudo-random integers using a rounding method that does not yield uniformly distributed integers, even
-if the PRNG were uniformly distributed on $w$-bit binary integers.
+if PRNG output were uniformly distributed on $w$-bit binary integers.
 
 As a result of the limitations of common PRNGs and sampling algorithms,
 the $L_1$ distance between the uniform distribution on samples of
@@ -132,16 +132,19 @@ It follows that there exist bounded functions of random samples whose expectatio
 
 % We divide PRNGs into three broad classes: those generally inadequate for quantitative work, those generally considered adequate for statistics, and cryptographically secure PRNGs.
 Section~\ref{sec:prngs} presents an overview of PRNGs and gives examples of better and worse ones.
-Section~\ref{sec:count} shows that, for modest $n$ and $k$, the state spaces of common PRNGs considered adequate for Statistics are too small to generate all permutations of $n$ things or all samples of $k$ of $n$ things. 
+Section~\ref{sec:count} shows that, for modest $n$ and $k$, the state spaces of common PRNGs considered adequate for Statistics are too small to generate all permutations of 
+$n$ things or all samples of $k$ of $n$ things. 
 Section~\ref{sec:algorithms} discusses sampling algorithms and shows that some are less demanding on the PRNG than others. 
-Section~\ref{sec:integers} shows that a common, textbook procedure for generating pseudo-random integers using a PRNG can be quite inaccurate; unfortunately, this is essentially the method that R uses.
+Section~\ref{sec:integers} shows that a common, ``textbook'' procedure for generating pseudo-random integers using a PRNG can be quite inaccurate; unfortunately, this is essentially the method that R uses
+and that the Python \texttt{random.choice()} function uses.
 Section~\ref{sec:discussion} concludes with recommendations and best practices.
 
 \section{Pseudo-random number generators}
 \label{sec:prngs}
 
 A \emph{pseudo-random number generator} (PRNG) is a deterministic algorithm that, starting with
-an initial ``seed'' value, produces a sequence of numbers that are supposed to behave like random numbers.
+an initial ``seed'' value, produces a sequence of numbers that are supposed to behave like 
+random numbers.
 An ideal PRNG has output that is statistically indistinguishable from random, uniform, IID bits. 
 Cryptographically secure PRNGs approach this ideal---the bits are (or seem to be) computationally 
 indistinguishable from IID uniform bits---but common PRNGs do not.
@@ -151,7 +154,8 @@ an internal \emph{state}, initialized with a \emph{seed};
 a function that maps the current state to an output;
 and a function that updates the internal state.
 
-If the state space is finite, the PRNG must eventually revisit a state---after which, it repeats.
+If the state space is finite, the PRNG must eventually revisit a state after some number of calls---after 
+which, it repeats.
 The \emph{period} of a PRNG is the maximum, over initial states, of the number of states 
 the PRNG visits before returning to a state already visited.
 The period is at most the total number of possible states.
@@ -170,22 +174,25 @@ For unfavorable initial states, the PRNG may need many ``burn-in'' calls before 
 
 
 \emph{Linear congruential generators} (LCGs) have the form $X_{n+1} = (a X_n + c) \mod m$, for a 
-modulus $m$, multiplier $a$, and additive constant $c$.
+\emph{modulus} $m$, \emph{multiplier} $a$, and \emph{additive constant} $c$.
 LCGs are fast to compute and require little computer memory.
 The behavior of LCGs is well understood from number theory.
 For instance, the Hull-Dobell theorem \cite{hullDobell62}
 gives necessary and sufficient conditions for a LCG to have full period for all seeds,
 and there are upper bounds on the number of hyperplanes of dimension $k$
 that contain all $k$-tuples of outputs, as a function of $m$ \cite{marsaglia_random_1968}.
-A smaller number of hyperplanes containing all $k$-tuples indicates greater predictability of PRNG outputs.
+When all $k$-tuples are in a smaller number of hyperplanes, that indicates that
+the PRNG outputs are more regular and more predictable.
 
 To take advantage of hardware efficiencies, early computer systems implemented LCGs 
 with moduli of the form 
 $m = 2^b$, where
 $b$ was the integer word size of the computer.
-This led to wide propagation of a particularly terrible choice, RANDU, originally introduced
+This led to wide propagation of a particularly bad PRNG, RANDU, originally introduced
 on IBM mainframes \cite{knuth_art_1997,markowsky14}.
-LCGs of this form cannot have full period because $m$ is not prime. 
+(RANDU has $a=65539$, $m=2^{31}$, and $c=0$.)
+
+More generally, LCGs with $m=2^b$ cannot have full period because $m$ is not prime. 
 Better LCGs have been developed---and some are used in commercial statistical software packages---but they are still
 generally considered inadequate for Statistics because of their short periods (typically $ \le 2^{32}$) 
 and correlation among outputs.
@@ -200,47 +207,48 @@ The Wichmann-Hill PRNG is a sum of three normalized LCGs; its output is in $[0, 
 %\end{align*}
 %
 It is generally not considered adequate for Statistics, but was (nominally) the PRNG in Excel 
-2003, 2007, and 2010. 
+2003, 2007, and 2010.\footnote{%
+\url{https://support.microsoft.com/en-us/help/828795/description-of-the-rand-function-in-excel}, last visited 23 October 2018.}
 The generator in Excel had an implementation bug that persisted for several generations.
 Excel didn't allow the seed to be set so issues could not be replicated, but users reported that the PRNG occasionally gave a negative output \cite{mccullough_microsoft_2008}.
 As of 2014, IMF banking Stress tests used Excel simulations \cite{ong14}.
 This worries us.
 
-Other approaches to generating pseudo-random numbers have been
+Many other approaches to generating pseudo-random numbers have been
 proposed, and PRNGs can be built by combining simpler ones (carefully--see \cite{knuth_art_1997} on ``randomly'' combining PRNGs).
-For instance, the KISS generator combines four generators of three types, and has a period greater than $2^{210}$.
-Nonetheless, such PRNGs are predictable from a relatively small number of outputs.
-For example, one can determine the LCG constants $a$, $c$, and $m$ by observing only 3 outputs.
+For instance, the KISS generator combines four generators of three types, and has a period greater than $2^{210}$.Nonetheless, standard PRNGs are predictable from a relatively small number of outputs.
+For example, one can determine the LCG constants $a$, $c$, and $m$ by observing only 3 outputs,
+and can recover the state of KISS from about 70~words of output \cite{rose11}.
 
 
 \subsection{Mersenne Twister (MT)}
 
-Mersenne Twister (MT) \cite{matsumoto_mersenne_1998} is a ``twisted'' generalized feedback shift register, a sequence of bitwise and linear operations.
+Mersenne Twister (MT) \cite{matsumoto_mersenne_1998} is a ``twisted generalized feedback shift register,'' a sequence of bitwise and linear operations.
 Its state space is $19,937$ bits and it has an enormous period $2^{19937}-1$, a Mersenne prime.
 It is $k$-equidistributed to $32$-bit accuracy for $k \leq 623$, 
 meaning that output vectors of length up to $623$ (except the zero vector) occur with equal frequency over the full period.
 The state is a $624 \times 32$ binary matrix.
 
-MT is the default PRNG in common languages and software packages, including Python, R, Stata, GNU Octave, Maple, MATLAB, Mathematica, and many more (see Table~\ref{tab:software}).
+MT is the default PRNG in common languages and software packages, including Python, R, Stata, 
+GNU Octave, Maple, MATLAB, Mathematica, and many more (see Table~\ref{tab:software}).
 We show below that it is not adequate for statistical analysis of modern data sets.
 Moreover, MT can have slow ``burn in,'' especially for seeds with many zeros \cite{saito_simd-oriented_2008}.
-The outputs for close seeds can be similar, which makes seeding distributed computations
+And the outputs for close seeds can be similar, which makes seeding distributed computations
 delicate.
 
 \subsection{Cryptographic hash functions}
 The PRNGs described above are quick to compute but predictable,
 and their outputs are easy to distinguish from actual random bits \cite{lecuyer_testu01_2007}.
-Cryptographers have devoted a great deal of energy to inventing cryptographic primatives, 
-functions that behave like a black box so an adversary cannot determine which inputs lead to certain outputs.
-These can be easily used to create PRNGs, as the properties that make functions cryptographically secure
-are properties of pseudo-randomness.
+Cryptographers have devoted a great deal of energy to inventing cryptographic hash functions,
+which can be used to create PRNGs, as the properties that make functions cryptographically secure
+are properties of good pseudo-randomness.
 
 A \emph{cryptographic hash function} $H$ is a function with the following properties:
 
 \begin{itemize}
-\item $H$ produces a fixed-length ``digest'' (hash) from arbitrarily long ``message'':\\ $H:\{0, 1\}^* \rightarrow \{0, 1\}^L$.
+\item $H$ produces a fixed-length ``digest'' (hash) from arbitrarily long ``message'' (input):\\ $H:\{0, 1\}^* \rightarrow \{0, 1\}^L$.
 \item $H$ is inexpensive to compute.
-\item $H$ is ``one-way,'' i.e., it is hard to find the pre-image of any hash except by exhaustive enumeration (this is the basis of  hashcash ``proof of work'' for Bitcoin and some other distributed ledgers).
+\item $H$ is ``one-way,'' i.e., it is hard to find a pre-image of any output except by exhaustive enumeration (this is the basis of  hashcash ``proof of work'' for Bitcoin and some other distributed ledgers).
 \item $H$ is collision-resistant, i.e., it is hard to find $M_1 \ne M_2$ such that $H(M_1) = H(M_2)$.
 \item small changes to $M$ produce unpredictable, big changes to $H(M)$.
 \item outputs of $H$ are equidistributed: bits of the hash are essentially IID random.
@@ -248,19 +256,18 @@ A \emph{cryptographic hash function} $H$ is a function with the following proper
 
 These properties of $H$ make it suitable as the basis of a PRNG:
 It is \emph{as if} $H(M)$ is a uniformly distributed random $L$-bit string assigned to $M$.
-We can construct a simple hash-based PRNG with the following procedure, which we first learned about
+One can construct a simple hash-based PRNG with the following procedure, which we first learned about
 from Ronald L.~Rivest:
 
 \begin{enumerate}
 \item Generate a random string $S$ with a substantial amount of entropy, e.g., 20 rolls of a
 10-sided die.
-\item Set $i=0$. ($i$ is the number of values generated so far.)
-\item Let ``S,i'' be the state.
+\item Set $i=0$. The state of the PRNG is the string ``S,i''. $i$ is the number of values generated so far. 
 \item Set $X_i = {\mbox{Hash}}(S,i)$, interpreted as a (long) hexadecimal number.
-\item Increment $i$ and return to steps~3-4 to generate the next output.
+\item Increment $i$ and return to step~4 to generate more outputs.
 \end{enumerate}
 
-\noindent Since a message can be arbitrarily long, this PRNG has an unbounded state space.
+\noindent Since a message can be arbitrarily long, this PRNG has an unbounded state space. For truly cryptographic applications, the seed should be reset to a new random value periodically; for statistical applications, that should not be necessary.
 
 \section{Counting permutations and samples}
 \label{sec:count}
@@ -276,13 +283,12 @@ one pigeon is put in each hole.
 \end{corollary}
 
 The corollary implies that a PRNG cannot generate more permutations or samples than the number of states the PRNG has (which is in turn an upper bound on the period of the PRNG).
-Of course, that does not mean that the permutations or samples a PRNG can generate appear with approximately equal probability: that depends on the quality of the PRNG, not just whether the number of states is less than, equal to, or greater than the number of permutations or samples.
-
+Of course, that does not mean that the permutations or samples a PRNG can generate occur with approximately equal probability: that depends on the quality of the PRNG, not just the size of the state space. 
 Nonetheless, it follows that no PRNG with a finite state space can be ``adequate for Statistics'' for every statistical problem.
 
 The number of permutations of $n$ objects is $n!$, the number of possible samples of $k$ of $n$ items
 with replacement is $n^k$,  and the number of possible samples of $k$ of $n$ without replacement is $\tbinom{n}{k}$.
-These bounds are helpful for counting pigeonholes:
+These bounds are helpful for counting pigeons:
 \begin{itemize}
 \item Stirling bounds: $ e n^{n+1/2} e^{-n} \ge n! \ge \sqrt{2 \pi} n^{n+1/2} e^{-n}.$
 \item Entropy bounds:
@@ -291,9 +297,10 @@ $ \frac{2^{nH(k/n)}}{n+1} \le \tbinom{n}{k} \le 2^{nH(k/n)},$ where $H(q) \equiv
 for $\ell \ge 1$ and $m \ge 2$, $ \tbinom{\ell m}{\ell } \ge \frac{m^{m(\ell-1)+1}}{\sqrt{\ell} (m-1)^{(m-1)(\ell-1)}}. $
 \end{itemize}
 
-Table~\ref{tab:pigeonhole} counts permutation pigeons and PRNG pigeonholes.
-For PRNGs with a small state space, even modest population sizes make it impossible to generate all possible randomizations.
-MT fails too: fewer than 1\% of permutations of 2084 items are actually attainable.
+Table~\ref{tab:pigeonhole} compares numbers of permutations and random samples to the size of
+the state space of various PRNGs.
+PRNGs with 32-bit state spaces, which include some in statistical packages, cannot generate all permutations of even small populations, nor all random samples of small size from modest populations.
+MT is better, but still inadequate: it can generate fewer than 1\% of the permutations of 2084 items.
 
 \begin{table}
 \caption{The pigeonhole principle applied to PRNGs, samples, and permutations.
@@ -337,8 +344,9 @@ Fraction of attainable samples & ${2^{32 \times 624}}/{\tbinom{3.9\times 10^8}{1
 
 \subsection{$L_1$ bounds}\label{sec:L1bounds}
 
-Simple probability bounds demonstrate the extent of bias introduced by using a PRNG with insufficiently large
-state space to approximate the sampling distribution of a statistic.
+Simple probability inequalities give attainable bounds on the bias introduced by using a 
+PRNG with insufficiently large state space, on  the assumption that the PRNG is uniform on its possible outputs. 
+(Failure of that uniformity makes matters even worse.)
 Suppose ${\mathbb P}_0$ and ${\mathbb P}_1$ are probability distributions on a common measurable space. 
 If there is some measurable set $S$ for which ${\mathbb P}_0(S) = \epsilon$ and ${\mathbb P}_1(S) = 0$, then $\|{\mathbb P}_0 - {\mathbb P}_1 \|_1 \ge 2 \epsilon$.
 Thus there is a function $f$ with $|f| \le 1$ such that 
@@ -348,38 +356,38 @@ $${\mathbb E}_{{\mathbb P}_0}f -  {\mathbb E}_{{\mathbb P}_1}f \ge 2 \epsilon.$$
 In the present context, ${\mathbb P}_0$ is the uniform distribution (on samples or permutations)
 and ${\mathbb P}_1$ is the distribution induced by the PRNG and sampling algorithm.
 If the PRNG has $n$ states and we want to generate $N>n$ equally likely outcomes, at least $N-n$ outcomes will have probability zero instead of $1/N$.
-Some statistics will have bias of at least $2 \times \frac{N-n}{N}$.
+Some statistics will have bias of (at least) $2 \times \frac{N-n}{N}$.
 As seen in Table~\ref{tab:pigeonhole}, the fraction of attainable samples or 
-permutations can be less than 1\% in problems of a size commonly encountered
+permutations is quite small in problems of a size commonly encountered
 in practice, making the bias nearly $2$. 
 
 \section{Sampling algorithms}
 \label{sec:algorithms}
 
-Given a source of randomness, there are many ways to draw a simple random sample.
+There are many ways to use a source of pseudo-randomness to simulate drawing a simple random sample. 
 A common approach is like shuffling a deck of $n$ cards, then dealing the top $k$:
 assign a (pseudo-)random number to each item, sort the items based on that number
 to produce a permutation of the population, 
 then take the first $k$ elements of the permuted list to be the sample
 \cite{stine_statistics_2014, leblanc_statistics_2004, dahlberg_practical_2010}.
-We call this algorithm PIKK: Permute indices and keep $k$.
+We call this algorithm PIKK: permute indices and keep $k$.
 
-If the random numbers really were IID $U[0,1)$, then every permutation would be equally likely, 
+If the pseudo-random numbers really were IID $U[0,1)$,  every permutation would indeed be equally likely, 
 and the first $k$ would be a simple random sample.
 But if the permutations are not equiprobable, there is no reason to think that the first $k$ 
 elements comprise a random sample. 
 Furthermore, this algorithm is inefficient: it requires generating 
-$n$ random numbers and then an $O(n\log n)$ sorting operation.
+$n$ pseudo-random numbers and then an $O(n\log n)$ sorting operation.
 
 There are better ways to generate a random permutation, such as the ``Fisher-Yates shuffle'' or ``Knuth shuffle'' (Knuth attributes it to Durstenfeld) \cite{knuth_art_1997},
 which involves generating $n$ independent random integers on various ranges, but no sorting.
 There is also a version suitable for \emph{streaming}, i.e., permuting a list that has an (initially) unknown number of elements.
-Generating $n$ pseudo-random numbers places more demand on a PRNG than some sampling algorithms discussed below, which only require $k$ pseudo-random numbers.
+Generating $n$ pseudo-random numbers places more demand on a PRNG than other sampling algorithms discussed below, which only require $k<n$ pseudo-random numbers.
 
 One simple method to draw a random sample of size $k$ from a population of size $n$
 is to draw $k$ integers at random without replacement from  $\{1, \ldots, n\}$, then take the items with those indices to be the sample.
 \cite{cormen_introduction_2009} provide an elegant recursive algorithm to draw random samples of size $k$ out of $n$; it requires the software recursion limit to be at least $k$.
-(In Python, the default maximum recursion depth is $2000$, so this algorithm cannot draw samples of greater than $2000$ items unless one increases the recursion limit.)
+(In Python, the default maximum recursion depth is $2000$, so this algorithm cannot draw samples of size greater than $2000$ unless one increases the recursion limit.)
 
 The sampling algorithms mentioned so far require $n$ to be known.
 \emph{Reservoir} algorithms, such as Waterman's Algorithm $R$, do not  \cite{knuth_art_1997}.
@@ -398,12 +406,12 @@ and then define $Y \equiv 1 + \lfloor mX \rfloor$ \cite{press_numerical_1988, pe
 In practice, PRNG outputs are not $U[0,1)$: they are derived by normalizing a value that is
  (supposed to be) uniformly distributed on $w$-bit integers. 
 
-The distribution of $Y$ is not uniform on $\{1, \ldots, m\}$ unless $m$ is a power of 2.
+Even if $X$ were uniformly distributed on $w$-bit integers, the distribution of $Y$ would not be uniform on $\{1, \ldots, m\}$ unless $m$ is a power of 2.
 If $m > 2^w$, at least $m-2^w$ values will have probability 0 instead of probability $1/m$.
 If $w=32$, then for $m>2^{32}\approx4.24 \times 10^9$, some values will have probability 0. 
-
 Conversely, there exists $m < 2^w$ such that the ratio of the largest to smallest selection probability
 of $\{1, \ldots, m\}$ is, to first order,  $1+ m 2^{-w+1}$ \cite{knuth_art_1997}.
+
 R (Version 3.5.1) \cite{R_2018} uses this multiply-and-floor approach to generate 
 pseudo-random integers,
 which eventually are used in the main sampling functions.
@@ -417,9 +425,10 @@ A more accurate way to generate random integers on $\{1, \dots, m\}$ is to use p
 This is not a new idea; \cite{hodges_basic_1970} describe essentially the same procedure to draw integers by hand
 from random decimal digit tables.
 The integer $m-1$ can be represented with $\mu = \lceil \log_2(m-1) \rceil$ bits. 
-To generate a pseudo-random integer at most $m$, first generate $\mu$ pseudo-random bits (for instance, by taking the most significant $\mu$ bits from the PRNG output) and interpret the bits as a binary integer.  
+To generate a pseudo-random integer uniformly distributed on $\{1, \ldots, m\}$, 
+generate $\mu$ pseudo-random bits (for instance, by taking the most significant $\mu$ bits from the PRNG output) and interpret the bits as a binary integer.  
 If the integer is larger than $m-1$, then discard it and draw another $\mu$ bits until the $\mu$ bits represent an integer less than or equal to $m-1$.
-When that occurs, return the integer, plus 1.
+When that occurs, return that integer, plus 1.
 This procedure potentially requires throwing out (in expectation) almost half the draws if $m-1$ is 
 just below a power of $2$, but the algorithm's output will be uniformly distributed (if the input bits are).
 This is how the Python package Numpy (Version 1.14) generates pseudo-random integers.\footnote{
@@ -440,10 +449,7 @@ Table~\ref{tab:software} lists the PRNGs and sampling algorithms used in common 
 Most use MT as their default PRNG; \emph{is} MT adequate for Statistics?
 Section~\ref{sec:L1bounds} shows that for some statistics, the $L_1$ distance between the theoretical value and the attainable value using a given PRNG
  is big for even modest sampling and permutation problems.
-Because MT is $k$-equidistributed, we should expect that ensemble frequencies will be approximately
-what they should be.
-However, we expect dependence across samples.
-We have been searching for empirical problems that are large enough to matter in 
+We have been searching for biases that are large enough to matter in 
 $O(10^5)$ replications or less, and are not idiosyncratic to a few bad seeds.
 We have examined the frequencies of simple random samples, the frequency of derangements and partial derangements, the Spearman correlation between permutations, 
 and other statistics; so far, we have not found a statistic with consistent
@@ -493,10 +499,6 @@ We have developed a CS-PRNG prototype as a Python package, \texttt{cryptorandom}
 } %
 The current implementation is slow (the bottleneck is Python data type conversions, not computation);
 we are developing a faster C implementation.
-
-    %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 
 \begin{acknowledgement}
 We are grateful to Ronald L.~Rivest for many helpful conversations.
