@@ -216,7 +216,8 @@ This worries us.
 
 Many other approaches to generating pseudo-random numbers have been
 proposed, and PRNGs can be built by combining simpler ones (carefully--see \cite{knuth_art_1997} on ``randomly'' combining PRNGs).
-For instance, the KISS generator combines four generators of three types, and has a period greater than $2^{210}$.Nonetheless, standard PRNGs are predictable from a relatively small number of outputs.
+For instance, the KISS generator combines four generators of three types, and has a period greater than $2^{210}$.
+Nonetheless, standard PRNGs are predictable from a relatively small number of outputs.
 For example, one can determine the LCG constants $a$, $c$, and $m$ by observing only 3 outputs,
 and can recover the state of KISS from about 70~words of output \cite{rose11}.
 
@@ -406,7 +407,7 @@ and then define $Y \equiv 1 + \lfloor mX \rfloor$ \cite{press_numerical_1988, pe
 In practice, PRNG outputs are not $U[0,1)$: they are derived by normalizing a value that is
  (supposed to be) uniformly distributed on $w$-bit integers. 
 
-Even if $X$ were uniformly distributed on $w$-bit integers, the distribution of $Y$ would not be uniform on $\{1, \ldots, m\}$ unless $m$ is a power of 2.
+Even if $X$ is uniformly distributed on $w$-bit integers, the distribution of $Y$ will not be uniform on $\{1, \ldots, m\}$ unless $m$ is a power of 2.
 If $m > 2^w$, at least $m-2^w$ values will have probability 0 instead of probability $1/m$.
 If $w=32$, then for $m>2^{32}\approx4.24 \times 10^9$, some values will have probability 0. 
 Conversely, there exists $m < 2^w$ such that the ratio of the largest to smallest selection probability
