@@ -265,7 +265,7 @@ from Ronald L.~Rivest:
 10-sided die.
 \item Set $i=0$. The state of the PRNG is the string ``S,i''. $i$ is the number of values generated so far. 
 \item Set $X_i = {\mbox{Hash}}(S,i)$, interpreted as a (long) hexadecimal number.
-\item Increment $i$ and return to step~4 to generate more outputs.
+\item Increment $i$ and return to step~3 to generate more outputs.
 \end{enumerate}
 
 \noindent Since a message can be arbitrarily long, this PRNG has an unbounded state space. For truly cryptographic applications, the seed should be reset to a new random value periodically; for statistical applications, that should not be necessary.
