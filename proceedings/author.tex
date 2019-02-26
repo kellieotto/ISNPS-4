@@ -122,7 +122,7 @@ For instance, some involve permuting the data.
 The number of items that common PRNGs can permute ranges from at most 13 to at most 2084, far smaller than many data sets.
 Other sampling algorithms require uniformly distributed integers (as opposed to the approximately $U[0,1)$ PRNG outputs) as input.
 Many software packages generate
-pseudo-random integers using a rounding method that does not yield uniformly distributed integers, even
+pseudo-random integers using a rounding or truncation method that does not yield uniformly distributed integers, even
 if PRNG output were uniformly distributed on $w$-bit binary integers.
 
 As a result of the limitations of common PRNGs and sampling algorithms,
@@ -263,7 +263,7 @@ from Ronald L.~Rivest:
 \begin{enumerate}
 \item Generate a random string $S$ with a substantial amount of entropy, e.g., 20 rolls of a
 10-sided die.
-\item Set $i=0$. The state of the PRNG is the string ``S,i''. $i$ is the number of values generated so far. 
+\item Set $i=0$. The state of the PRNG is the string ``S,i'', where $i$ is the number of values generated so far. 
 \item Set $X_i = {\mbox{Hash}}(S,i)$, interpreted as a (long) hexadecimal number.
 \item Increment $i$ and return to step~3 to generate more outputs.
 \end{enumerate}
@@ -413,18 +413,18 @@ If $w=32$, then for $m>2^{32}\approx4.24 \times 10^9$, some values will have pro
 Conversely, there exists $m < 2^w$ such that the ratio of the largest to smallest selection probability
 of $\{1, \ldots, m\}$ is, to first order,  $1+ m 2^{-w+1}$ \cite{knuth_art_1997}.
 
-R (Version 3.5.1) \cite{R_2018} uses this multiply-and-floor approach to generate 
+R~(Version 3.5.1) \cite{R_2018} uses this multiply-and-floor approach to generate 
 pseudo-random integers,
 which eventually are used in the main sampling functions.
 Duncan Murdoch devised a simple simulation that shows how large the inhomogeneity of selection
 probabilities can be:
-for $m=  (2/5) \times 2^{32} = 1,717,986,918$, the \texttt{sample()} function generates about 40\% even numbers and about 60\% odd numbers \footnote{ %
+for $m=  (2/5) \times 2^{32} = 1,717,986,918$, the \texttt{sample()} function generates about 40\% even numbers and about 60\% odd numbers.\footnote{ %
 \url{https://stat.ethz.ch/pipermail/r-devel/2018-September/076827.html}, last visited 17 October 2018
-}. %
+}
     
 A more accurate way to generate random integers on $\{1, \dots, m\}$ is to use pseudo-random bits directly. 
-This is not a new idea; \cite{hodges_basic_1970} describe essentially the same procedure to draw integers by hand
-from random decimal digit tables.
+This is not a new idea; \cite{hodges_basic_1970} describe essentially the same procedure to draw integers by 
+hand from random decimal digit tables.
 The integer $m-1$ can be represented with $\mu = \lceil \log_2(m-1) \rceil$ bits. 
 To generate a pseudo-random integer uniformly distributed on $\{1, \ldots, m\}$, 
 generate $\mu$ pseudo-random bits (for instance, by taking the most significant $\mu$ bits from the PRNG output) and interpret the bits as a binary integer.  
@@ -435,7 +435,6 @@ just below a power of $2$, but the algorithm's output will be uniformly distribu
 This is how the Python package Numpy (Version 1.14) generates pseudo-random integers.\footnote{
 However, Python's built-in \texttt{random.choice()} (Versions 2.7 through 3.6) does something else that's biased: it finds the closest integer to $mX$.
 }
-
 
 \section{Discussion}
 \label{sec:discussion}
@@ -492,8 +491,11 @@ We recommend the following practices and considerations for using PRNGs in Stati
 
 
 We also recommend that R and Python upgrade their algorithms to use best practices.
-R should replace the multiply-and-floor algorithm it uses to generate random integers in the \texttt{sample} function (and other functions) with the more precise bit masking algorithm, as discussed
-in \cite{ottoboniStark18}.
+R should replace the multiply-and-floor algorithm it uses to generate random integers in the \texttt{sample()} function (and other functions) with the more precise bit masking algorithm, as discussed
+in \cite{ottoboniStark18}.\footnote{%
+  We are pleased to report that after this original draft of this paper, in response to \cite{ottoboniStark18}, the R~development team updated the functions \texttt{sample()}, \texttt{walkerProbSampleReplace()}, and \texttt{wilcox.test()} 
+  in R~version 3.6 to use the better approach. See \url{https://github.com/wch/r-source/commit/e4acfd1f240a42b3fc1474a4d97017114e4eb053\#diff-3fa2a86745f6ebacfa969f26aea574c7}.
+}
 And we suggest R and Python use cryptographically secure PRNGs by default, with an option of using MT instead in case the difference in speed matters.
 We have developed a CS-PRNG prototype as a Python package, \texttt{cryptorandom}.\footnote{ %
 \texttt{cryptorandom} can be downloaded at \url{https://github.com/statlab/cryptorandom} and \url{https://pypi.org/project/cryptorandom/}.
@@ -502,7 +504,7 @@ The current implementation is slow (the bottleneck is Python data type conversio
 we are developing a faster C implementation.
 
 \begin{acknowledgement}
-We are grateful to Ronald L.~Rivest for many helpful conversations.
+We are grateful to Ronald L.~Rivest for many helpful conversations and to the R~development team, notably Duncan Murdoch and Luke Tierney, for improving the generation of random integers in R~version 3.6 in response to the concerns we raised.
 %If you want to include acknowledgments of assistance and the like at the end of an individual chapter please use the \verb|acknowledgement| environment -- it will automatically render Springer's preferred layout.
 \end{acknowledgement}
 
